@@ -1,4 +1,4 @@
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -54,6 +54,23 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
                 </li>
               ))}
             </ol>
+          </div>
+
+          {/* Already installed — reload to activate */}
+          <div className="bg-background border border-border rounded-lg p-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Already installed? Reload the page to activate it.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => window.location.reload()}
+              data-testid="button-reload-page"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Reload Page
+            </Button>
           </div>
 
           {/* Chrome Web Store note */}

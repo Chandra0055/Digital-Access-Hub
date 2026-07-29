@@ -1,7 +1,26 @@
 // Kenter Tech Portal — Background Service Worker
-// Receives cookie injection requests from the content script,
-// sets cookies on the target domain, then opens the tool in a new tab.
 
+// ─── On install: inject content script into ALL already-open tabs ───────────
+// This means users don't need to reload the page after installing the extension.
+chrome.runtime.onInstalled.addListener(async () => {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-script.js'],
+        }).catch(() => {
+          // Some tabs (chrome://, file://, etc.) will reject — ignore them
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Kenter] Could not inject into existing tabs:', err);
+  }
+});
+
+// ─── Cookie injection handler ────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'injectAndOpen') {
     injectCookiesAndOpen(message.cookies, message.url)
@@ -12,7 +31,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function injectCookiesAndOpen(cookiesJson, targetUrl) {
-  // Parse the cookie JSON exported from Cookie-Editor
   let cookies;
   try {
     cookies = JSON.parse(cookiesJson);
@@ -25,13 +43,11 @@ async function injectCookiesAndOpen(cookiesJson, targetUrl) {
   }
 
   const parsed = new URL(targetUrl);
-
   let injected = 0;
   let failed = 0;
 
   for (const cookie of cookies) {
     try {
-      // Build the URL the cookie belongs to
       const rawDomain = cookie.domain || parsed.hostname;
       const cleanDomain = rawDomain.startsWith('.') ? rawDomain.slice(1) : rawDomain;
       const scheme = cookie.secure ? 'https' : parsed.protocol.replace(':', '');
@@ -44,13 +60,10 @@ async function injectCookiesAndOpen(cookiesJson, targetUrl) {
         path: cookie.path || '/',
       };
 
-      // Domain (optional — omit to let Chrome infer from URL)
       if (cookie.domain) details.domain = cookie.domain;
-
       if (typeof cookie.secure === 'boolean') details.secure = cookie.secure;
       if (typeof cookie.httpOnly === 'boolean') details.httpOnly = cookie.httpOnly;
 
-      // Chrome uses different sameSite vocabulary than Cookie-Editor
       if (cookie.sameSite) {
         const s = cookie.sameSite.toLowerCase();
         if (s === 'none' || s === 'no_restriction') details.sameSite = 'no_restriction';
@@ -70,7 +83,5 @@ async function injectCookiesAndOpen(cookiesJson, targetUrl) {
   }
 
   console.log(`[Kenter] Injected ${injected} cookies, ${failed} failed. Opening ${targetUrl}`);
-
-  // Open the tool in a new tab
   await chrome.tabs.create({ url: targetUrl });
 }

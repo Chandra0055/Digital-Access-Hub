@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Kenter Tech Portal",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Automatically injects session cookies when you access tools from Kenter Tech Portal — making it truly one-click.",
-  "permissions": ["cookies", "tabs"],
+  "permissions": ["cookies", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
