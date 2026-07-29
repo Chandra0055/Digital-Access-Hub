@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Kenter Tech Portal"
+version = "1.0.0"
+id = "artifacts/kenter-tech-portal"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19833
+
+[services.development]
+run = "pnpm --filter @workspace/kenter-tech-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/kenter-tech-portal", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/kenter-tech-portal/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19833"
+BASE_PATH = "/"
