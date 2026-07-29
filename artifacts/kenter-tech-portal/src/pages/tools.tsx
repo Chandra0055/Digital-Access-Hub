@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useListTools, getListToolsQueryKey } from '@workspace/api-client-react';
+import type { Tool } from '@workspace/api-client-react';
 import { StatusBadge } from '@/components/status-badge';
+import { CredentialsModal } from '@/components/credentials-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExternalLink, Search } from 'lucide-react';
+import { KeyRound, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -12,6 +14,7 @@ export default function ToolsPage() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
 
   const { data: tools, isLoading } = useListTools(
     { category, status },
@@ -100,11 +103,11 @@ export default function ToolsPage() {
                   {tool.status === 'active' ? (
                     <Button
                       size="sm"
-                      onClick={() => window.open(tool.redirectUrl, '_blank')}
+                      onClick={() => setSelectedTool(tool)}
                       data-testid={`button-access-${tool.id}`}
                     >
+                      <KeyRound className="w-3 h-3 mr-2" />
                       Access Tool
-                      <ExternalLink className="w-3 h-3 ml-2" />
                     </Button>
                   ) : (
                     <Button size="sm" disabled data-testid={`button-coming-soon-${tool.id}`}>
@@ -121,6 +124,16 @@ export default function ToolsPage() {
           </div>
         )}
       </motion.div>
+
+      {selectedTool && (
+        <CredentialsModal
+          open={!!selectedTool}
+          onClose={() => setSelectedTool(null)}
+          toolName={selectedTool.name}
+          credentials={selectedTool.credentials}
+          redirectUrl={selectedTool.redirectUrl}
+        />
+      )}
     </div>
   );
 }

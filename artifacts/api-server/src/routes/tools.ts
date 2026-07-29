@@ -22,6 +22,7 @@ function serializeTool(tool: typeof toolsTable.$inferSelect) {
     category: tool.category,
     redirectUrl: tool.redirectUrl,
     iconUrl: tool.iconUrl ?? null,
+    credentials: tool.credentials ?? null,
     createdAt: tool.createdAt,
   };
 }

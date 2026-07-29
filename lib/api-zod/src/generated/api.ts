@@ -99,6 +99,7 @@ export const ListToolsResponseItem = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
+  "credentials": zod.string().nullish().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool'),
   "createdAt": zod.coerce.date()
 })
 export const ListToolsResponse = zod.array(ListToolsResponseItem)
@@ -116,7 +117,8 @@ export const CreateToolBody = zod.object({
   "status": zod.enum(['active', 'inactive', 'coming_soon']),
   "category": zod.string(),
   "redirectUrl": zod.string(),
-  "iconUrl": zod.string().optional()
+  "iconUrl": zod.string().optional(),
+  "credentials": zod.string().optional().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool')
 })
 
 export const CreateToolResponse = zod.object({
@@ -127,6 +129,7 @@ export const CreateToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
+  "credentials": zod.string().nullish().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool'),
   "createdAt": zod.coerce.date()
 })
 
@@ -146,6 +149,7 @@ export const GetToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
+  "credentials": zod.string().nullish().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool'),
   "createdAt": zod.coerce.date()
 })
 
@@ -166,7 +170,8 @@ export const UpdateToolBody = zod.object({
   "status": zod.enum(['active', 'inactive', 'coming_soon']).optional(),
   "category": zod.string().optional(),
   "redirectUrl": zod.string().optional(),
-  "iconUrl": zod.string().optional()
+  "iconUrl": zod.string().optional(),
+  "credentials": zod.string().optional().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool')
 })
 
 export const UpdateToolResponse = zod.object({
@@ -177,6 +182,7 @@ export const UpdateToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
+  "credentials": zod.string().nullish().describe('Login credentials, cookies, API keys, or any access details subscribers need to use this tool'),
   "createdAt": zod.coerce.date()
 })
 

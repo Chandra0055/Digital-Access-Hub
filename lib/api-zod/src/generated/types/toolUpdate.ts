@@ -15,4 +15,6 @@ export interface ToolUpdate {
   category?: string;
   redirectUrl?: string;
   iconUrl?: string;
+  /** Login credentials, cookies, API keys, or any access details subscribers need to use this tool */
+  credentials?: string;
 }

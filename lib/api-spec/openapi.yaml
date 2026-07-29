@@ -493,6 +493,9 @@ components:
           type: string
         iconUrl:
           type: ["string", "null"]
+        credentials:
+          type: ["string", "null"]
+          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
         createdAt:
           type: string
           format: date-time
@@ -515,6 +518,9 @@ components:
           type: string
         iconUrl:
           type: string
+        credentials:
+          type: string
+          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
 
     ToolUpdate:
       type: object
@@ -533,6 +539,9 @@ components:
           type: string
         iconUrl:
           type: string
+        credentials:
+          type: string
+          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
 
     # ─── Subscription schemas ─────────────────────────────────────────────────
     Subscription:

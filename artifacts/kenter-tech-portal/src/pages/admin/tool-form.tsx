@@ -19,6 +19,7 @@ interface ToolFormData {
   category: string;
   redirectUrl: string;
   iconUrl?: string;
+  credentials?: string;
 }
 
 export default function ToolFormPage() {
@@ -47,6 +48,7 @@ export default function ToolFormPage() {
       category: '',
       redirectUrl: '',
       iconUrl: '',
+      credentials: '',
     },
   });
 
@@ -59,6 +61,7 @@ export default function ToolFormPage() {
         category: tool.category,
         redirectUrl: tool.redirectUrl,
         iconUrl: tool.iconUrl || '',
+        credentials: tool.credentials || '',
       });
     }
   }, [tool, form]);
@@ -220,6 +223,29 @@ export default function ToolFormPage() {
                     <FormControl>
                       <Input {...field} data-testid="input-icon-url" placeholder="https://example.com/icon.png" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="credentials"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Credentials / Access Details (optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        data-testid="input-credentials"
+                        rows={6}
+                        placeholder={`Paste the login details, cookies, or API keys subscribers need to use this tool.\n\nExample:\nUsername: user@example.com\nPassword: securepassword123\nCookie: session=abc123xyz`}
+                        className="font-mono text-sm resize-y"
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Subscribers will see this when they click "Access Tool". You can store cookies, usernames/passwords, API keys, or any other access details.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -16,5 +16,10 @@ export interface Tool {
   redirectUrl: string;
   /** @nullable */
   iconUrl?: string | null;
+  /**
+     * Login credentials, cookies, API keys, or any access details subscribers need to use this tool
+     * @nullable
+     */
+  credentials?: string | null;
   createdAt: Date;
 }
