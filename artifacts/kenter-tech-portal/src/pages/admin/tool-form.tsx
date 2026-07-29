@@ -233,18 +233,18 @@ export default function ToolFormPage() {
                 name="credentials"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Credentials / Access Details (optional)</FormLabel>
+                    <FormLabel>Cookies (optional)</FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
                         data-testid="input-credentials"
                         rows={6}
-                        placeholder={`Paste the login details, cookies, or API keys subscribers need to use this tool.\n\nExample:\nUsername: user@example.com\nPassword: securepassword123\nCookie: session=abc123xyz`}
+                        placeholder={`Paste the cookie string here.\n\nExample:\nsession_id=abc123xyz; auth_token=def456uvw; user_pref=dark`}
                         className="font-mono text-sm resize-y"
                       />
                     </FormControl>
                     <p className="text-xs text-muted-foreground">
-                      Subscribers will see this when they click "Access Tool". You can store cookies, usernames/passwords, API keys, or any other access details.
+                      Paste the cookie string for this tool. Subscribers will see and copy it when they click "Access Tool".
                     </p>
                     <FormMessage />
                   </FormItem>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Copy, Check, ExternalLink, KeyRound } from 'lucide-react';
+import { Copy, Check, ExternalLink, Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -38,11 +38,11 @@ export function CredentialsModal({
       <DialogContent className="sm:max-w-lg bg-card border-card-border">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <KeyRound className="w-5 h-5 text-primary" />
+            <Cookie className="w-5 h-5 text-primary" />
             <DialogTitle className="text-lg font-semibold">{toolName}</DialogTitle>
           </div>
           <DialogDescription className="text-muted-foreground">
-            Use the credentials below to access this tool.
+            Copy the cookie string below and paste it into your browser to access this tool.
           </DialogDescription>
         </DialogHeader>
 
@@ -74,7 +74,7 @@ export function CredentialsModal({
             </div>
           ) : (
             <div className="bg-background border border-dashed border-border rounded p-6 text-center text-sm text-muted-foreground">
-              No credentials have been added for this tool yet.
+              No cookies have been added for this tool yet.
             </div>
           )}
 
