@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useListTools, getListToolsQueryKey } from '@workspace/api-client-react';
+import type { Tool } from '@workspace/api-client-react';
 import { StatusBadge } from '@/components/status-badge';
+import { LaunchModal } from '@/components/launch-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,6 +14,7 @@ export default function ToolsPage() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
 
   const { data: tools, isLoading } = useListTools(
     { category, status },
@@ -23,6 +26,15 @@ export default function ToolsPage() {
   );
 
   const categories = Array.from(new Set(tools?.map((t) => t.category) || []));
+
+  const handleAccessTool = (tool: Tool) => {
+    // If the tool has cookie data, show the launch guide; otherwise open directly
+    if (tool.cookieData?.trim()) {
+      setSelectedTool(tool);
+    } else {
+      window.open(tool.redirectUrl, '_blank');
+    }
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -100,7 +112,7 @@ export default function ToolsPage() {
                   {tool.status === 'active' ? (
                     <Button
                       size="sm"
-                      onClick={() => window.open(tool.redirectUrl, '_blank')}
+                      onClick={() => handleAccessTool(tool)}
                       data-testid={`button-access-${tool.id}`}
                     >
                       Access Tool
@@ -121,6 +133,16 @@ export default function ToolsPage() {
           </div>
         )}
       </motion.div>
+
+      {selectedTool && (
+        <LaunchModal
+          open={!!selectedTool}
+          onClose={() => setSelectedTool(null)}
+          toolName={selectedTool.name}
+          cookieData={selectedTool.cookieData}
+          redirectUrl={selectedTool.redirectUrl}
+        />
+      )}
     </div>
   );
 }
