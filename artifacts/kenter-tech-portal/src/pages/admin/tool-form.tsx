@@ -249,13 +249,13 @@ export default function ToolFormPage() {
                         <Textarea
                           {...field}
                           data-testid="input-cookie-data"
-                          rows={8}
-                          placeholder={`Paste the full session cookie string here.\n\nExample:\n__Secure-1PSID=ABC123; __Secure-3PSID=XYZ789; SID=abc; HSID=def; SSID=ghi; APISID=jkl; SAPISID=mno`}
+                          rows={10}
+                          placeholder={`Export as JSON from Cookie-Editor and paste here.\n\nExample:\n[\n  {\n    "name": "__Secure-1PSID",\n    "value": "ABC123xyz...",\n    "domain": ".example.com",\n    "path": "/",\n    "secure": true,\n    "httpOnly": true,\n    "sameSite": "None"\n  },\n  {\n    "name": "SID",\n    "value": "def456...",\n    "domain": ".example.com",\n    "path": "/"\n  }\n]`}
                           className="font-mono text-xs resize-y leading-relaxed"
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
-                        Stored securely on the server. Never exposed to subscribers — used internally for session management.
+                        Use <span className="text-foreground font-medium">Cookie-Editor</span> → <span className="text-foreground font-medium">Export As: JSON</span>. JSON preserves all cookie properties (domain, path, expiry, flags). Never exposed to subscribers.
                       </p>
                       <FormMessage />
                     </FormItem>
