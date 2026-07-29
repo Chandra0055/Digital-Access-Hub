@@ -1,32 +1,36 @@
 # Kenter Tech Portal — Browser Extension
 
-Automatically injects session cookies when subscribers click **Access Tool**, making it truly one-click.
+Works on **Chrome, Firefox, Edge, Brave, and Opera**.
 
-## Install (Chrome / Edge / Brave)
+## Install on Chrome / Edge / Brave / Opera
 
-1. Open your browser and go to `chrome://extensions`
-2. Turn on **Developer mode** (toggle in the top-right)
+1. Go to `chrome://extensions` (or `edge://extensions`, `brave://extensions`)
+2. Turn on **Developer mode** (toggle, top-right)
 3. Click **Load unpacked**
-4. Select this folder (`kenter-extension`)
-5. The extension appears in your toolbar — you're done
+4. Select this `kenter-extension` folder
+5. Done — the extension icon appears in your toolbar
+
+## Install on Firefox
+
+1. Go to `about:debugging`
+2. Click **This Firefox** in the left sidebar
+3. Click **Load Temporary Add-on...**
+4. Navigate to this folder and select the `manifest.json` file
+5. Done — the extension icon appears in your toolbar
+
+> **Note for Firefox permanent install:** Firefox requires extensions to be signed to install permanently. For a permanent install, the extension needs to be submitted to addons.mozilla.org or self-signed. The temporary method above works until Firefox restarts.
 
 ## How it works
 
-- The extension runs silently in the background
-- When you click **Access Tool** on the portal, it automatically:
-  1. Reads the session cookie JSON stored for that tool
-  2. Injects all cookies into the correct domain using Chrome's cookie API
-  3. Opens the tool in a new tab — already logged in
+When you click **Access Tool** on the portal, the extension:
+1. Reads the session cookie JSON for that tool
+2. Injects all cookies into the correct domain
+3. Opens the tool in a new tab — already logged in
 
-## Permissions used
+## Permissions
 
 | Permission | Why |
 |---|---|
-| `cookies` | To set session cookies on the target tool domain |
-| `tabs` | To open the tool in a new tab after injection |
-| `<all_urls>` | Cookies can belong to any domain — this allows setting them anywhere |
-
-## Notes
-
-- Cookie data is never sent to any external server — it flows directly from the portal page to the extension background worker in your own browser
-- Requires the session cookies to be saved in the Admin Panel (Admin → Tools → Edit → Session Cookie Data)
+| `cookies` | Set session cookies on the target tool's domain |
+| `tabs` | Open the tool in a new tab after injection |
+| `<all_urls>` | Cookies can belong to any domain |

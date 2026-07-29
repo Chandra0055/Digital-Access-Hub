@@ -24,17 +24,10 @@
       gap: 10px;
     }
 
-    .logo {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-
+    .logo { font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
     .logo span { color: #06b6d4; }
 
-    .status {
-      padding: 16px;
-    }
+    .status { padding: 16px; }
 
     .badge {
       display: inline-flex;
@@ -51,8 +44,7 @@
     }
 
     .dot {
-      width: 7px;
-      height: 7px;
+      width: 7px; height: 7px;
       border-radius: 50%;
       background: #4ade80;
       flex-shrink: 0;
@@ -71,18 +63,23 @@
       font-size: 12px;
     }
 
-    .divider {
-      height: 1px;
-      background: #1e2433;
-      margin: 14px 0;
+    .divider { height: 1px; background: #1e2433; margin: 14px 0; }
+
+    .browsers {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .version {
-      color: #334155;
+    .browser-tag {
+      background: #1e2433;
+      color: #94a3b8;
       font-size: 11px;
-      text-align: center;
-      padding-bottom: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
     }
+
+    .version { color: #334155; font-size: 11px; text-align: center; padding-bottom: 4px; }
   </style>
 </head>
 <body>
@@ -95,9 +92,17 @@
       Extension Active
     </div>
     <p class="info">
-      When you click <strong>Access Tool</strong> on the portal, cookies are automatically
-      injected and the tool opens instantly.
+      Click <strong>Access Tool</strong> on the portal — cookies are automatically
+      injected and the tool opens already logged in.
     </p>
+    <div class="divider"></div>
+    <div class="browsers">
+      <span class="browser-tag">Chrome</span>
+      <span class="browser-tag">Firefox</span>
+      <span class="browser-tag">Edge</span>
+      <span class="browser-tag">Brave</span>
+      <span class="browser-tag">Opera</span>
+    </div>
     <div class="divider"></div>
     <div class="version" id="version"></div>
   </div>
