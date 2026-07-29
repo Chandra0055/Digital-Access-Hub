@@ -6,7 +6,7 @@ import { LaunchModal } from '@/components/launch-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExternalLink, Search, Zap } from 'lucide-react';
+import { ExternalLink, Search, Zap, PuzzleIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -15,33 +15,32 @@ export default function ToolsPage() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  // Tracks which tool's install modal is open (for tools with cookies + no extension)
+  const [installModalTool, setInstallModalTool] = useState<Tool | null>(null);
   const [extInstalled, setExtInstalled] = useState(false);
   const { toast } = useToast();
 
-  // Detect the Kenter extension
+  // Detect the Kenter extension (content script sets window.__kenterExtInstalled)
   useEffect(() => {
-    // Already signalled before React mounted
     if ((window as any).__kenterExtInstalled) {
       setExtInstalled(true);
       return;
     }
-    // Listen in case the content script fires after React mounts
     const handler = () => setExtInstalled(true);
     window.addEventListener('kenter:extensionReady', handler);
     return () => window.removeEventListener('kenter:extensionReady', handler);
   }, []);
 
-  // Listen for injection results
+  // Listen for injection results from the extension
   useEffect(() => {
     const onSuccess = () => {
-      toast({ title: '✅ Cookies injected — tool opened!' });
+      toast({ title: '✅ Logged in — tool opened!' });
     };
     const onError = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       toast({
-        title: 'Cookie injection failed',
-        description: detail?.error || 'Unknown error',
+        title: 'Injection failed',
+        description: detail?.error || 'Unknown error. Try reinstalling the extension.',
         variant: 'destructive',
       });
     };
@@ -65,22 +64,24 @@ export default function ToolsPage() {
   const categories = Array.from(new Set(tools?.map((t) => t.category) || []));
 
   const handleAccessTool = (tool: Tool) => {
-    if (!tool.cookieData?.trim()) {
-      // No cookies — open directly
+    const needsCookies = !!tool.cookieData?.trim();
+
+    if (!needsCookies) {
+      // No cookies required — open directly
       window.open(tool.redirectUrl, '_blank');
       return;
     }
 
     if (extInstalled) {
-      // Extension is present — inject automatically
+      // Extension present — inject and open automatically
       window.dispatchEvent(
         new CustomEvent('kenter:injectAndOpen', {
           detail: { cookies: tool.cookieData, url: tool.redirectUrl },
         })
       );
     } else {
-      // No extension — show manual guide + install prompt
-      setSelectedTool(tool);
+      // Extension required but not installed — show install gate
+      setInstallModalTool(tool);
     }
   };
 
@@ -97,7 +98,7 @@ export default function ToolsPage() {
             <p className="text-muted-foreground">Browse and access your digital toolkit</p>
           </div>
 
-          {/* Extension status badge */}
+          {/* Extension status pill */}
           {extInstalled ? (
             <div className="flex items-center gap-2 text-sm bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1.5 rounded-full">
               <Zap className="w-3.5 h-3.5" />
@@ -105,17 +106,17 @@ export default function ToolsPage() {
             </div>
           ) : (
             <a
-              href="https://cookie-editor.com"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/kenter-extension.zip"
+              download="kenter-extension.zip"
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-full px-3 py-1.5"
             >
+              <PuzzleIcon className="w-3.5 h-3.5" />
               Install extension for 1-click access
-              <ExternalLink className="w-3 h-3" />
             </a>
           )}
         </div>
 
+        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -151,6 +152,7 @@ export default function ToolsPage() {
           </Select>
         </div>
 
+        {/* Tool cards */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48" />)}
@@ -182,7 +184,7 @@ export default function ToolsPage() {
                       {extInstalled && tool.cookieData ? (
                         <><Zap className="w-3 h-3 mr-1.5" />Access Tool</>
                       ) : (
-                        <>Access Tool<ExternalLink className="w-3 h-3 ml-2" /></>
+                        <>Access Tool <ExternalLink className="w-3 h-3 ml-1.5" /></>
                       )}
                     </Button>
                   ) : (
@@ -201,13 +203,12 @@ export default function ToolsPage() {
         )}
       </motion.div>
 
-      {selectedTool && (
+      {/* Extension install gate — shown when subscriber tries to access a cookie-protected tool without extension */}
+      {installModalTool && (
         <LaunchModal
-          open={!!selectedTool}
-          onClose={() => setSelectedTool(null)}
-          toolName={selectedTool.name}
-          cookieData={selectedTool.cookieData}
-          redirectUrl={selectedTool.redirectUrl}
+          open={!!installModalTool}
+          onClose={() => setInstallModalTool(null)}
+          toolName={installModalTool.name}
         />
       )}
     </div>
