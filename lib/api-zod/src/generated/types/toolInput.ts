@@ -15,6 +15,6 @@ export interface ToolInput {
   category: string;
   redirectUrl: string;
   iconUrl?: string;
-  /** Login credentials, cookies, API keys, or any access details subscribers need to use this tool */
-  credentials?: string;
+  /** Session cookie data for this tool — only visible to admins */
+  cookieData?: string;
 }

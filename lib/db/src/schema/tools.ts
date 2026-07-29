@@ -12,7 +12,7 @@ export const toolsTable = pgTable("tools", {
   category: text("category").notNull(),
   redirectUrl: text("redirect_url").notNull(),
   iconUrl: text("icon_url"),
-  credentials: text("credentials"),
+  cookieData: text("cookie_data"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

@@ -17,9 +17,9 @@ export interface Tool {
   /** @nullable */
   iconUrl?: string | null;
   /**
-     * Login credentials, cookies, API keys, or any access details subscribers need to use this tool
+     * Session cookie data for this tool — only visible to admins
      * @nullable
      */
-  credentials?: string | null;
+  cookieData?: string | null;
   createdAt: Date;
 }

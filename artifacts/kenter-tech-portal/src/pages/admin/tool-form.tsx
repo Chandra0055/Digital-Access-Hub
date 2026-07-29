@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
 
 interface ToolFormData {
   name: string;
@@ -19,7 +19,7 @@ interface ToolFormData {
   category: string;
   redirectUrl: string;
   iconUrl?: string;
-  credentials?: string;
+  cookieData?: string;
 }
 
 export default function ToolFormPage() {
@@ -48,7 +48,7 @@ export default function ToolFormPage() {
       category: '',
       redirectUrl: '',
       iconUrl: '',
-      credentials: '',
+      cookieData: '',
     },
   });
 
@@ -61,7 +61,7 @@ export default function ToolFormPage() {
         category: tool.category,
         redirectUrl: tool.redirectUrl,
         iconUrl: tool.iconUrl || '',
-        credentials: tool.credentials || '',
+        cookieData: tool.cookieData || '',
       });
     }
   }, [tool, form]);
@@ -135,14 +135,16 @@ export default function ToolFormPage() {
         <div className="border border-card-border bg-card rounded p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+              {/* ── Basic info ── */}
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Tool Name</FormLabel>
                     <FormControl>
-                      <Input {...field} data-testid="input-name" />
+                      <Input {...field} data-testid="input-name" placeholder="e.g., CloudSync Pro" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -156,56 +158,58 @@ export default function ToolFormPage() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} data-testid="input-description" rows={3} />
+                      <Textarea {...field} data-testid="input-description" rows={3} placeholder="What does this tool do?" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-category" placeholder="e.g., Development, Design" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
                       <FormControl>
-                        <SelectTrigger data-testid="select-status">
-                          <SelectValue />
-                        </SelectTrigger>
+                        <Input {...field} data-testid="input-category" placeholder="e.g., Development, Design" />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="coming_soon">Coming Soon</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="coming_soon">Coming Soon</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
                 name="redirectUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Redirect URL</FormLabel>
+                    <FormLabel>Tool URL</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-redirect-url" placeholder="https://example.com" />
                     </FormControl>
@@ -219,7 +223,7 @@ export default function ToolFormPage() {
                 name="iconUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Icon URL (optional)</FormLabel>
+                    <FormLabel>Icon URL <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-icon-url" placeholder="https://example.com/icon.png" />
                     </FormControl>
@@ -228,30 +232,38 @@ export default function ToolFormPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="credentials"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cookies (optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        data-testid="input-credentials"
-                        rows={6}
-                        placeholder={`Paste the cookie string here.\n\nExample:\nsession_id=abc123xyz; auth_token=def456uvw; user_pref=dark`}
-                        className="font-mono text-sm resize-y"
-                      />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Paste the cookie string for this tool. Subscribers will see and copy it when they click "Access Tool".
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* ── Admin-only: Session Cookie Data ── */}
+              <div className="border border-amber-500/20 bg-amber-500/5 rounded-lg p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="text-sm font-semibold text-amber-400">Admin Only</span>
+                </div>
 
-              <div className="flex gap-3">
+                <FormField
+                  control={form.control}
+                  name="cookieData"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Session Cookie Data</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          data-testid="input-cookie-data"
+                          rows={8}
+                          placeholder={`Paste the full session cookie string here.\n\nExample:\n__Secure-1PSID=ABC123; __Secure-3PSID=XYZ789; SID=abc; HSID=def; SSID=ghi; APISID=jkl; SAPISID=mno`}
+                          className="font-mono text-xs resize-y leading-relaxed"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Stored securely on the server. Never exposed to subscribers — used internally for session management.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
                 <Button type="submit" disabled={isPending} data-testid="button-submit">
                   {isPending ? 'Saving...' : isEdit ? 'Update Tool' : 'Create Tool'}
                 </Button>

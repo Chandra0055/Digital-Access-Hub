@@ -493,9 +493,9 @@ components:
           type: string
         iconUrl:
           type: ["string", "null"]
-        credentials:
+        cookieData:
           type: ["string", "null"]
-          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
+          description: "Session cookie data for this tool — only visible to admins"
         createdAt:
           type: string
           format: date-time
@@ -518,9 +518,9 @@ components:
           type: string
         iconUrl:
           type: string
-        credentials:
+        cookieData:
           type: string
-          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
+          description: "Session cookie data for this tool — only visible to admins"
 
     ToolUpdate:
       type: object
@@ -539,9 +539,9 @@ components:
           type: string
         iconUrl:
           type: string
-        credentials:
+        cookieData:
           type: string
-          description: "Login credentials, cookies, API keys, or any access details subscribers need to use this tool"
+          description: "Session cookie data for this tool — only visible to admins"
 
     # ─── Subscription schemas ─────────────────────────────────────────────────
     Subscription:

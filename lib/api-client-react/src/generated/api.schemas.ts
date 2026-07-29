@@ -157,10 +157,10 @@ export interface Tool {
   /** @nullable */
   iconUrl?: string | null;
   /**
-     * Login credentials, cookies, API keys, or any access details subscribers need to use this tool
+     * Session cookie data for this tool — only visible to admins
      * @nullable
      */
-  credentials?: string | null;
+  cookieData?: string | null;
   createdAt: string;
 }
 
@@ -181,8 +181,8 @@ export interface ToolInput {
   category: string;
   redirectUrl: string;
   iconUrl?: string;
-  /** Login credentials, cookies, API keys, or any access details subscribers need to use this tool */
-  credentials?: string;
+  /** Session cookie data for this tool — only visible to admins */
+  cookieData?: string;
 }
 
 export type ToolUpdateStatus = typeof ToolUpdateStatus[keyof typeof ToolUpdateStatus];
@@ -202,8 +202,8 @@ export interface ToolUpdate {
   category?: string;
   redirectUrl?: string;
   iconUrl?: string;
-  /** Login credentials, cookies, API keys, or any access details subscribers need to use this tool */
-  credentials?: string;
+  /** Session cookie data for this tool — only visible to admins */
+  cookieData?: string;
 }
 
 export type SubscriptionWithUserStatus = typeof SubscriptionWithUserStatus[keyof typeof SubscriptionWithUserStatus];
