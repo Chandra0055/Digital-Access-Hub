@@ -37,19 +37,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isPast } from 'date-fns';
-import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash, ShieldOff } from 'lucide-react';
+import { Plus, Trash2, Settings2, Calendar, CalendarDays, Hash, ShieldOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Validity preset helper ─────────────────────────────────────────────────
 
-type ValidityPreset = '1' | '7' | '25' | '90' | 'unlimited' | 'custom';
+type ValidityPreset = '0' | '1' | '7' | '25' | '90' | 'custom';
 
 const PRESET_LABELS: Record<ValidityPreset, string> = {
+  '0': '0 Days',
   '1': '1 Day',
   '7': '7 Days',
   '25': '25 Days',
   '90': '90 Days',
-  'unlimited': 'Unlimited',
   'custom': 'Custom',
 };
 
@@ -124,7 +124,7 @@ function ValidityPicker({
             <div className="flex items-center gap-2">
               <Input
                 type="number"
-                min="1"
+                min="0"
                 placeholder="Number of days"
                 value={customDays}
                 onChange={(e) => onCustomDays(e.target.value)}
@@ -154,13 +154,12 @@ function ValidityPicker({
   );
 }
 
-function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | null | undefined {
+function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | undefined {
   if (mode === 'date') {
     if (!exactDate) return undefined;
     const days = Math.ceil((new Date(exactDate).getTime() - Date.now()) / 86_400_000);
-    return days > 0 ? days : 1;
+    return days > 0 ? days : 0;
   }
-  if (preset === 'unlimited') return undefined;
   if (preset === 'custom') return customDays ? parseInt(customDays, 10) : undefined;
   return parseInt(preset, 10);
 }
@@ -229,7 +228,7 @@ function CreateUserDialog({
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'subscriber' | 'admin'>('subscriber');
   const [validityMode, setValidityMode] = useState<ValidityMode>('days');
-  const [preset, setPreset] = useState<ValidityPreset>('unlimited');
+  const [preset, setPreset] = useState<ValidityPreset>('7');
   const [customDays, setCustomDays] = useState('');
   const [exactDate, setExactDate] = useState('');
   const [toolIds, setToolIds] = useState<number[]>([]);
@@ -242,7 +241,7 @@ function CreateUserDialog({
   const reset = () => {
     setName(''); setEmail(''); setPassword('');
     setRole('subscriber'); setValidityMode('days');
-    setPreset('unlimited'); setCustomDays(''); setExactDate(''); setToolIds([]);
+    setPreset('7'); setCustomDays(''); setExactDate(''); setToolIds([]);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -349,7 +348,7 @@ function ManageUserDialog({
   allToolNames: Map<number, string>;
 }) {
   const [validityMode, setValidityMode] = useState<ValidityMode>('days');
-  const [preset, setPreset] = useState<ValidityPreset>('unlimited');
+  const [preset, setPreset] = useState<ValidityPreset>('7');
   const [customDays, setCustomDays] = useState('');
   const [exactDate, setExactDate] = useState('');
   const [toolIds, setToolIds] = useState<number[]>(user.toolIds ?? []);
@@ -363,13 +362,7 @@ function ManageUserDialog({
 
   const handleSave = async () => {
     const accessDays = getAccessDays(validityMode, preset, customDays, exactDate);
-    // Clear expiry if unlimited selected in days mode
-    const accessDaysPayload =
-      validityMode === 'days' && preset === 'unlimited' && user.validUntil
-        ? { accessDays: null }
-        : accessDays !== undefined
-        ? { accessDays }
-        : {};
+    const accessDaysPayload = accessDays !== undefined ? { accessDays } : {};
 
     try {
       await updateMutation.mutateAsync({
@@ -574,9 +567,7 @@ export function UsersTab() {
                         {expired ? '⚠ ' : ''}{format(expiry, 'MMM d, yyyy')}
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                        <Infinity className="w-3.5 h-3.5" /> Unlimited
-                      </span>
+                      <span className="text-muted-foreground text-sm">—</span>
                     )}
                   </TableCell>
                   <TableCell>

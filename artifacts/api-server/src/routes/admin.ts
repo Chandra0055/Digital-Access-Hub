@@ -41,14 +41,14 @@ const CreateUserBody = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(["admin", "subscriber"]).default("subscriber"),
-  accessDays: z.number().int().positive().optional(),
+  accessDays: z.number().int().min(0).optional(),
   toolIds: z.array(z.number().int().positive()).optional(),
 });
 
 const UpdateUserBody = z.object({
   role: z.enum(["admin", "subscriber"]).optional(),
   subscriptionStatus: z.enum(["active", "inactive", "trial", "expired"]).optional(),
-  accessDays: z.number().int().positive().nullable().optional(),
+  accessDays: z.number().int().min(0).nullable().optional(),
 });
 
 const SetUserToolsBody = z.object({
@@ -99,7 +99,12 @@ router.post("/admin/users", requireAdmin, async (req, res): Promise<void> => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const validUntil = accessDays ? new Date(Date.now() + accessDays * 86_400_000) : null;
+  // accessDays === 0 → immediately expired (validUntil set to 1 second ago)
+  const validUntil = accessDays === undefined || accessDays === null
+    ? null
+    : accessDays === 0
+    ? new Date(Date.now() - 1000)
+    : new Date(Date.now() + accessDays * 86_400_000);
 
   const [user] = await db
     .insert(usersTable)
@@ -140,9 +145,14 @@ router.patch("/admin/users/:id", requireAdmin, async (req, res): Promise<void> =
   if (body.data.subscriptionStatus) updateData.subscriptionStatus = body.data.subscriptionStatus;
 
   if (body.data.accessDays !== undefined) {
-    updateData.validUntil = body.data.accessDays === null
-      ? null
-      : new Date(Date.now() + body.data.accessDays * 86_400_000);
+    if (body.data.accessDays === null) {
+      updateData.validUntil = null;
+    } else if (body.data.accessDays === 0) {
+      // 0 days = immediately expired
+      updateData.validUntil = new Date(Date.now() - 1000);
+    } else {
+      updateData.validUntil = new Date(Date.now() + body.data.accessDays * 86_400_000);
+    }
   }
 
   const [user] = await db
