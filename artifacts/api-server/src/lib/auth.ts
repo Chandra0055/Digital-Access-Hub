@@ -54,3 +54,29 @@ export async function requireAdmin(
     next();
   });
 }
+
+/**
+ * Requires the authenticated user to have an active subscription.
+ * Admins always pass. For subscribers: subscriptionStatus must be 'active'
+ * and validUntil (if set) must be in the future.
+ */
+export async function requireActiveSubscription(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  await requireAuth(req, res, () => {
+    const user = req.user!;
+    if (user.role === "admin") { next(); return; }
+
+    if (user.subscriptionStatus !== "active") {
+      res.status(403).json({ error: "Subscription expired." });
+      return;
+    }
+    if (user.validUntil && new Date(user.validUntil) < new Date()) {
+      res.status(403).json({ error: "Subscription expired." });
+      return;
+    }
+    next();
+  });
+}

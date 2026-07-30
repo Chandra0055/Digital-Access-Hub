@@ -1,9 +1,9 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useListTools, useAdminGetStats, getListToolsQueryKey, getAdminGetStatsQueryKey } from '@workspace/api-client-react';
-import { Package, Users, UserCheck, TrendingUp } from 'lucide-react';
+import { Package, Users, UserCheck, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isPast, format } from 'date-fns';
+import { isPast, format, formatDistanceToNow } from 'date-fns';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -22,6 +22,14 @@ export default function DashboardPage() {
 
   const activeTools = tools?.filter((t) => t.status === 'active') || [];
 
+  // Subscription state for non-admin users
+  const validUntil = user?.validUntil ? new Date(user.validUntil) : null;
+  const subscriptionExpired = !isAdmin && (
+    user?.subscriptionStatus !== 'active' ||
+    (validUntil ? isPast(validUntil) : false)
+  );
+  const subscriptionActive = !isAdmin && user?.subscriptionStatus === 'active' && (!validUntil || !isPast(validUntil));
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <motion.div
@@ -34,10 +42,68 @@ export default function DashboardPage() {
             Welcome back, {user?.name}
           </h1>
           <p className="text-muted-foreground">
-            {user?.role === 'admin' ? 'Administrator dashboard' : 'Your personal dashboard'}
+            {isAdmin ? 'Administrator dashboard' : 'Your personal dashboard'}
           </p>
         </div>
 
+        {/* Subscription status card for subscribers */}
+        {!isAdmin && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mb-8"
+          >
+            {subscriptionActive ? (
+              <div className="flex items-start gap-4 border border-green-200 bg-green-50 rounded-lg p-4">
+                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-800">Subscription Active</p>
+                  {validUntil ? (
+                    <p className="text-sm text-green-700 mt-0.5">
+                      Your subscription expires on{' '}
+                      <span className="font-medium">{format(validUntil, 'MMMM d, yyyy')}</span>
+                      {' '}— {formatDistanceToNow(validUntil, { addSuffix: true })}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-green-700 mt-0.5">Your subscription has no expiry date.</p>
+                  )}
+                </div>
+              </div>
+            ) : subscriptionExpired ? (
+              <div className="flex items-start gap-4 border border-red-200 bg-red-50 rounded-lg p-4">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-red-800">Subscription Expired</p>
+                  <p className="text-sm text-red-700 mt-0.5">
+                    {validUntil
+                      ? `Your subscription expired on ${format(validUntil, 'MMMM d, yyyy')}.`
+                      : 'Your subscription is no longer active.'}
+                    {' '}Contact your administrator to renew.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-4 border border-amber-200 bg-amber-50 rounded-lg p-4">
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-800">No Active Subscription</p>
+                  <p className="text-sm text-amber-700 mt-0.5">
+                    You don't have an active subscription. Contact your administrator to get access.
+                  </p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Admin stat cards */}
         {isAdmin && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             {statsLoading ? (
@@ -96,16 +162,18 @@ export default function DashboardPage() {
                   <span className="text-sm text-muted-foreground">Your Role</span>
                   <span className="text-sm font-mono font-semibold uppercase">{user?.role}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Access Valid Until</span>
-                  <span className="text-sm font-mono">
-                    {user?.validUntil
-                      ? isPast(new Date(user.validUntil))
-                        ? <span className="text-red-500">Expired {format(new Date(user.validUntil), 'MMM dd, yyyy')}</span>
-                        : format(new Date(user.validUntil), 'MMM dd, yyyy')
-                      : 'Unlimited'}
-                  </span>
-                </div>
+                {!isAdmin && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Subscription Expires</span>
+                    <span className="text-sm font-mono">
+                      {validUntil
+                        ? isPast(validUntil)
+                          ? <span className="text-red-500 font-semibold">Expired {format(validUntil, 'MMM dd, yyyy')}</span>
+                          : <span className="text-green-600 font-semibold">{format(validUntil, 'MMM dd, yyyy')}</span>
+                        : <span className="text-green-600">Unlimited</span>}
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </div>

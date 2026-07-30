@@ -1,23 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useListTools, getListToolsQueryKey } from '@workspace/api-client-react';
 import type { Tool } from '@workspace/api-client-react';
+import { useAuth } from '@/contexts/auth-context';
 import { StatusBadge } from '@/components/status-badge';
 import { LaunchModal } from '@/components/launch-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExternalLink, Search, Zap, PuzzleIcon } from 'lucide-react';
+import { ExternalLink, Search, Zap, PuzzleIcon, AlertTriangle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { isPast, format } from 'date-fns';
 
-export default function AiBlastsPage() {
+export default function ToolsPage() {
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [installModalTool, setInstallModalTool] = useState<Tool | null>(null);
   const [extInstalled, setExtInstalled] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  // Determine subscription state
+  const isAdmin = user?.role === 'admin';
+  const subscriptionActive =
+    isAdmin ||
+    (user?.subscriptionStatus === 'active' &&
+      (!user?.validUntil || !isPast(new Date(user.validUntil))));
+  const subscriptionExpired =
+    !isAdmin &&
+    (user?.subscriptionStatus === 'expired' ||
+      (user?.validUntil ? isPast(new Date(user.validUntil)) : false));
+  const subscriptionNone = !isAdmin && user?.subscriptionStatus === 'inactive';
 
   // Detect the Kenter extension via DOM attribute set at document_start.
   useEffect(() => {
@@ -33,7 +48,7 @@ export default function AiBlastsPage() {
   // Listen for injection results from the extension
   useEffect(() => {
     const onSuccess = () => {
-      toast({ title: '✅ Logged in — Ai Blast opened!' });
+      toast({ title: '✅ Logged in — Tool opened!' });
     };
     const onError = (e: Event) => {
       const detail = (e as CustomEvent).detail;
@@ -63,6 +78,7 @@ export default function AiBlastsPage() {
   const categories = Array.from(new Set(tools?.map((t) => t.category) || []));
 
   const handleAccessTool = (tool: Tool) => {
+    if (!subscriptionActive) return;
     const needsCookies = !!tool.cookieData?.trim();
 
     if (!needsCookies) {
@@ -94,22 +110,49 @@ export default function AiBlastsPage() {
             <p className="text-muted-foreground">Browse and access your digital toolkit</p>
           </div>
 
-          {extInstalled ? (
-            <div className="flex items-center gap-2 text-sm bg-green-500/10 border border-green-500/20 text-green-600 px-3 py-1.5 rounded-full">
-              <Zap className="w-3.5 h-3.5" />
-              Extension active — 1-click access enabled
-            </div>
-          ) : (
-            <a
-              href="/kenter-extension.zip"
-              download="kenter-extension.zip"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-full px-3 py-1.5"
-            >
-              <PuzzleIcon className="w-3.5 h-3.5" />
-              Install extension for 1-click access
-            </a>
+          {subscriptionActive && (
+            extInstalled ? (
+              <div className="flex items-center gap-2 text-sm bg-green-500/10 border border-green-500/20 text-green-600 px-3 py-1.5 rounded-full">
+                <Zap className="w-3.5 h-3.5" />
+                Extension active — 1-click access enabled
+              </div>
+            ) : (
+              <a
+                href="/kenter-extension.zip"
+                download="kenter-extension.zip"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-full px-3 py-1.5"
+              >
+                <PuzzleIcon className="w-3.5 h-3.5" />
+                Install extension for 1-click access
+              </a>
+            )
           )}
         </div>
+
+        {/* Subscription expired / inactive banner */}
+        {(subscriptionExpired || subscriptionNone) && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-sm">
+                {subscriptionExpired
+                  ? `Your subscription expired on ${user?.validUntil ? format(new Date(user.validUntil), 'MMMM d, yyyy') : 'an unknown date'}.`
+                  : 'You don\'t have an active subscription.'}
+              </p>
+              <p className="text-xs mt-0.5 text-amber-700">
+                Contact your administrator to renew your subscription and regain access to these tools.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Validity info for active subscriptions with an expiry */}
+        {subscriptionActive && !isAdmin && user?.validUntil && (
+          <div className="mb-6 flex items-center gap-2 text-xs text-muted-foreground border border-border rounded-lg px-3 py-2 w-fit">
+            <Clock className="w-3.5 h-3.5" />
+            Subscription expires on <span className="font-medium text-foreground ml-1">{format(new Date(user.validUntil), 'MMMM d, yyyy')}</span>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -147,7 +190,7 @@ export default function AiBlastsPage() {
           </Select>
         </div>
 
-        {/* Ai Blast cards */}
+        {/* Tool cards */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48" />)}
@@ -161,7 +204,11 @@ export default function AiBlastsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
                 data-testid={`card-tool-${tool.id}`}
-                className="border border-border bg-card rounded p-5 hover:border-primary/50 transition-colors"
+                className={`border rounded p-5 transition-colors ${
+                  subscriptionActive
+                    ? 'border-border bg-card hover:border-primary/50'
+                    : 'border-border bg-card/60 opacity-80'
+                }`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -185,17 +232,29 @@ export default function AiBlastsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-muted-foreground uppercase">{tool.category}</span>
                   {tool.status === 'active' ? (
-                    <Button
-                      size="sm"
-                      onClick={() => handleAccessTool(tool)}
-                      data-testid={`button-access-${tool.id}`}
-                    >
-                      {extInstalled && tool.cookieData ? (
-                        <><Zap className="w-3 h-3 mr-1.5" />Access Tool</>
-                      ) : (
-                        <>Access Tool <ExternalLink className="w-3 h-3 ml-1.5" /></>
-                      )}
-                    </Button>
+                    subscriptionActive ? (
+                      <Button
+                        size="sm"
+                        onClick={() => handleAccessTool(tool)}
+                        data-testid={`button-access-${tool.id}`}
+                      >
+                        {extInstalled && tool.cookieData ? (
+                          <><Zap className="w-3 h-3 mr-1.5" />Access Tool</>
+                        ) : (
+                          <>Access Tool <ExternalLink className="w-3 h-3 ml-1.5" /></>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled
+                        variant="outline"
+                        className="text-xs text-muted-foreground"
+                        data-testid={`button-renew-${tool.id}`}
+                      >
+                        Renew Subscription to Access
+                      </Button>
+                    )
                   ) : (
                     <Button size="sm" disabled data-testid={`button-coming-soon-${tool.id}`}>
                       Coming Soon

@@ -37,7 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isPast } from 'date-fns';
-import { Plus, Trash2, Settings2, Calendar, Infinity } from 'lucide-react';
+import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Validity preset helper ─────────────────────────────────────────────────
@@ -53,53 +53,113 @@ const PRESET_LABELS: Record<ValidityPreset, string> = {
   'custom': 'Custom',
 };
 
+type ValidityMode = 'days' | 'date';
+
 function ValidityPicker({
+  mode,
   preset,
   customDays,
+  exactDate,
+  onMode,
   onPreset,
   onCustomDays,
+  onExactDate,
 }: {
+  mode: ValidityMode;
   preset: ValidityPreset;
   customDays: string;
+  exactDate: string;
+  onMode: (v: ValidityMode) => void;
   onPreset: (v: ValidityPreset) => void;
   onCustomDays: (v: string) => void;
+  onExactDate: (v: string) => void;
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {(Object.entries(PRESET_LABELS) as [ValidityPreset, string][]).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onPreset(key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-              preset === key
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Mode toggle */}
+      <div className="flex rounded-lg border border-border overflow-hidden w-fit">
+        <button
+          type="button"
+          onClick={() => onMode('days')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors ${
+            mode === 'days'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <Hash className="w-3 h-3" /> Days from today
+        </button>
+        <button
+          type="button"
+          onClick={() => onMode('date')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-l border-border ${
+            mode === 'date'
+              ? 'bg-primary text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted'
+          }`}
+        >
+          <CalendarDays className="w-3 h-3" /> Pick exact date
+        </button>
       </div>
-      {preset === 'custom' && (
+
+      {mode === 'days' ? (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {(Object.entries(PRESET_LABELS) as [ValidityPreset, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onPreset(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  preset === key
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {preset === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="1"
+                placeholder="Number of days"
+                value={customDays}
+                onChange={(e) => onCustomDays(e.target.value)}
+                className="w-40 h-8 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">days</span>
+            </div>
+          )}
+        </>
+      ) : (
         <div className="flex items-center gap-2">
           <Input
-            type="number"
-            min="1"
-            placeholder="Number of days"
-            value={customDays}
-            onChange={(e) => onCustomDays(e.target.value)}
-            className="w-40 h-8 text-sm"
+            type="date"
+            value={exactDate}
+            min={new Date().toISOString().split('T')[0]}
+            onChange={(e) => onExactDate(e.target.value)}
+            className="w-48 h-8 text-sm"
           />
-          <span className="text-sm text-muted-foreground">days</span>
+          {exactDate && (
+            <span className="text-xs text-muted-foreground">
+              Expires {format(new Date(exactDate), 'MMM d, yyyy')}
+            </span>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-function getAccessDays(preset: ValidityPreset, customDays: string): number | undefined {
+function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | null | undefined {
+  if (mode === 'date') {
+    if (!exactDate) return undefined;
+    const days = Math.ceil((new Date(exactDate).getTime() - Date.now()) / 86_400_000);
+    return days > 0 ? days : 1;
+  }
   if (preset === 'unlimited') return undefined;
   if (preset === 'custom') return customDays ? parseInt(customDays, 10) : undefined;
   return parseInt(preset, 10);
@@ -168,8 +228,10 @@ function CreateUserDialog({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'subscriber' | 'admin'>('subscriber');
+  const [validityMode, setValidityMode] = useState<ValidityMode>('days');
   const [preset, setPreset] = useState<ValidityPreset>('unlimited');
   const [customDays, setCustomDays] = useState('');
+  const [exactDate, setExactDate] = useState('');
   const [toolIds, setToolIds] = useState<number[]>([]);
 
   const { toast } = useToast();
@@ -179,21 +241,20 @@ function CreateUserDialog({
 
   const reset = () => {
     setName(''); setEmail(''); setPassword('');
-    setRole('subscriber'); setPreset('unlimited');
-    setCustomDays(''); setToolIds([]);
+    setRole('subscriber'); setValidityMode('days');
+    setPreset('unlimited'); setCustomDays(''); setExactDate(''); setToolIds([]);
   };
 
   const handleClose = () => { reset(); onClose(); };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const accessDays = getAccessDays(preset, customDays);
+    const accessDays = getAccessDays(validityMode, preset, customDays, exactDate);
 
     createMutation.mutate(
       { data: { name, email, password, role, accessDays, toolIds } },
       {
         onSuccess: async (newUser) => {
-          // If specific tools selected, set tool access
           if (toolIds.length > 0) {
             await setToolsMutation.mutateAsync({ id: newUser.id, data: { toolIds } });
           }
@@ -243,8 +304,11 @@ function CreateUserDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Access Validity</Label>
-            <ValidityPicker preset={preset} customDays={customDays} onPreset={setPreset} onCustomDays={setCustomDays} />
+            <Label>Subscription Expiry</Label>
+            <ValidityPicker
+              mode={validityMode} preset={preset} customDays={customDays} exactDate={exactDate}
+              onMode={setValidityMode} onPreset={setPreset} onCustomDays={setCustomDays} onExactDate={setExactDate}
+            />
           </div>
 
           {allToolIds.length > 0 && (
@@ -284,8 +348,10 @@ function ManageUserDialog({
   allToolIds: number[];
   allToolNames: Map<number, string>;
 }) {
+  const [validityMode, setValidityMode] = useState<ValidityMode>('days');
   const [preset, setPreset] = useState<ValidityPreset>('unlimited');
   const [customDays, setCustomDays] = useState('');
+  const [exactDate, setExactDate] = useState('');
   const [toolIds, setToolIds] = useState<number[]>(user.toolIds ?? []);
   const [role, setRole] = useState<'admin' | 'subscriber'>(user.role as any);
   const [status, setStatus] = useState(user.subscriptionStatus);
@@ -296,20 +362,20 @@ function ManageUserDialog({
   const setToolsMutation = useAdminSetUserTools();
 
   const handleSave = async () => {
-    const accessDays = getAccessDays(preset, customDays);
+    const accessDays = getAccessDays(validityMode, preset, customDays, exactDate);
+    // Clear expiry if unlimited selected in days mode
+    const accessDaysPayload =
+      validityMode === 'days' && preset === 'unlimited' && user.validUntil
+        ? { accessDays: null }
+        : accessDays !== undefined
+        ? { accessDays }
+        : {};
 
     try {
-      // Update user role/status/validity
       await updateMutation.mutateAsync({
         id: user.id,
-        data: {
-          role: role as any,
-          subscriptionStatus: status as any,
-          ...(preset !== 'unlimited' && accessDays ? { accessDays } : preset === 'unlimited' && user.validUntil ? { accessDays: null } : {}),
-        },
+        data: { role: role as any, subscriptionStatus: status as any, ...accessDaysPayload },
       });
-
-      // Update tool access
       await setToolsMutation.mutateAsync({ id: user.id, data: { toolIds } });
 
       toast({ title: 'Customer updated' });
@@ -330,11 +396,12 @@ function ManageUserDialog({
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
+          {/* Current expiry info */}
           {currentExpiry && (
             <div className={`text-xs rounded-lg px-3 py-2 border ${isPast(currentExpiry) ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
               {isPast(currentExpiry)
-                ? `⚠ Access expired on ${format(currentExpiry, 'MMM d, yyyy')}`
-                : `Access expires ${format(currentExpiry, 'MMM d, yyyy')}`}
+                ? `⚠ Subscription expired on ${format(currentExpiry, 'MMM d, yyyy')}`
+                : `Subscription expires ${format(currentExpiry, 'MMM d, yyyy')}`}
             </div>
           )}
 
@@ -350,7 +417,7 @@ function ManageUserDialog({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Status</Label>
+              <Label>Subscription Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -364,9 +431,11 @@ function ManageUserDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Extend / Set Validity</Label>
-            <p className="text-xs text-muted-foreground">Choose a preset to update the expiry date from today.</p>
-            <ValidityPicker preset={preset} customDays={customDays} onPreset={setPreset} onCustomDays={setCustomDays} />
+            <Label>Subscription Expiry</Label>
+            <ValidityPicker
+              mode={validityMode} preset={preset} customDays={customDays} exactDate={exactDate}
+              onMode={setValidityMode} onPreset={setPreset} onCustomDays={setCustomDays} onExactDate={setExactDate}
+            />
           </div>
 
           {allToolIds.length > 0 && (

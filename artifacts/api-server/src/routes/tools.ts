@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db, toolsTable, userToolAccessTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import { requireAuth, requireAdmin, requireActiveSubscription } from "../lib/auth";
 import {
   ListToolsQueryParams,
   CreateToolBody,
@@ -13,7 +13,7 @@ import {
 
 const router: IRouter = Router();
 
-function serializeTool(tool: typeof toolsTable.$inferSelect) {
+function serializeTool(tool: typeof toolsTable.$inferSelect, hideSecrets = false) {
   return {
     id: tool.id,
     name: tool.name,
@@ -22,19 +22,23 @@ function serializeTool(tool: typeof toolsTable.$inferSelect) {
     category: tool.category,
     redirectUrl: tool.redirectUrl,
     iconUrl: tool.iconUrl ?? null,
-    cookieData: tool.cookieData ?? null,
+    cookieData: hideSecrets ? null : (tool.cookieData ?? null),
     createdAt: tool.createdAt,
   };
 }
 
 // GET /tools
 router.get("/tools", requireAuth, async (req, res): Promise<void> => {
-  // Check access validity for non-admin users
   const user = req.user!;
-  if (user.role !== "admin" && user.validUntil && new Date(user.validUntil) < new Date()) {
-    res.status(403).json({ error: "Your access has expired. Please contact your administrator." });
-    return;
-  }
+
+  // Determine if this subscriber's subscription is active
+  const subscriptionExpired =
+    user.role !== "admin" &&
+    (user.subscriptionStatus !== "active" ||
+      (user.validUntil !== null && new Date(user.validUntil) < new Date()));
+
+  // If expired, still return the list (so UI can show disabled state) but strip secrets
+  const hideSecrets = subscriptionExpired;
 
   const parsed = ListToolsQueryParams.safeParse(req.query);
   const params = parsed.success ? parsed.data : {};
@@ -56,7 +60,7 @@ router.get("/tools", requireAuth, async (req, res): Promise<void> => {
   if (params.category) tools = tools.filter((t) => t.category === params.category);
   if (params.status) tools = tools.filter((t) => t.status === params.status);
 
-  res.json(tools.map(serializeTool));
+  res.json(tools.map((t) => serializeTool(t, hideSecrets)));
 });
 
 // POST /tools
@@ -67,8 +71,8 @@ router.post("/tools", requireAdmin, async (req, res): Promise<void> => {
   res.status(201).json(serializeTool(tool));
 });
 
-// GET /tools/:id
-router.get("/tools/:id", requireAuth, async (req, res): Promise<void> => {
+// GET /tools/:id  — requires active subscription to see secrets
+router.get("/tools/:id", requireAuth, requireActiveSubscription, async (req, res): Promise<void> => {
   const params = GetToolParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 

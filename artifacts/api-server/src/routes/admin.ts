@@ -217,8 +217,8 @@ router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
   const [totalToolsResult] = await db.select({ count: count() }).from(toolsTable);
   const [activeSubsResult] = await db
     .select({ count: count() })
-    .from(subscriptionsTable)
-    .where(eq(subscriptionsTable.status, "active"));
+    .from(usersTable)
+    .where(eq(usersTable.subscriptionStatus, "active"));
 
   const toolsByCategory = await db
     .select({ category: toolsTable.category, count: count() })
