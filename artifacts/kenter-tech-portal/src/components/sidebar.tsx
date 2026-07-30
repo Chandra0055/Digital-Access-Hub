@@ -22,7 +22,7 @@ export function Sidebar() {
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/tools', label: 'Ai Blasts', icon: Package },
+    { href: '/tools', label: 'Available Tools', icon: Package },
     { href: '/account', label: 'My Account', icon: User },
   ];
 

@@ -90,8 +90,8 @@ export default function AiBlastsPage() {
       >
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Ai Blasts</h1>
-            <p className="text-muted-foreground">Browse and access your Ai Blast tools</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Available Tools</h1>
+            <p className="text-muted-foreground">Browse and access your digital toolkit</p>
           </div>
 
           {extInstalled ? (
@@ -116,7 +116,7 @@ export default function AiBlastsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search Ai Blasts..."
+              placeholder="Search tools..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               data-testid="input-search"
@@ -177,9 +177,9 @@ export default function AiBlastsPage() {
                       data-testid={`button-access-${tool.id}`}
                     >
                       {extInstalled && tool.cookieData ? (
-                        <><Zap className="w-3 h-3 mr-1.5" />Access Ai Blast</>
+                        <><Zap className="w-3 h-3 mr-1.5" />Access Tool</>
                       ) : (
-                        <>Access Ai Blast <ExternalLink className="w-3 h-3 ml-1.5" /></>
+                        <>Access Tool <ExternalLink className="w-3 h-3 ml-1.5" /></>
                       )}
                     </Button>
                   ) : (
@@ -193,7 +193,7 @@ export default function AiBlastsPage() {
           </div>
         ) : (
           <div className="text-center py-12 border border-dashed border-border rounded">
-            <p className="text-muted-foreground">No Ai Blasts found matching your criteria</p>
+            <p className="text-muted-foreground">No tools found matching your criteria</p>
           </div>
         )}
       </motion.div>
