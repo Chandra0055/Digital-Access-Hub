@@ -62,7 +62,7 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Extension Required</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
-            To access <strong className="text-foreground">{toolName}</strong>, install the Kenter extension first. Pick your browser below.
+            To access <strong className="text-foreground">{toolName}</strong>, install the Ai Blast extension first. Pick your browser below.
           </DialogDescription>
         </DialogHeader>
 

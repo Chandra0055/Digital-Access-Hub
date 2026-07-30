@@ -47,9 +47,7 @@ export default function LoginPage() {
       >
         <div className="border border-card-border bg-card rounded p-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">
-              KENTER<span className="text-primary">_TECH</span>
-            </h1>
+            <img src="/logo.png" alt="Ai Blast" className="h-20 w-auto object-contain mb-3" />
             <p className="text-muted-foreground text-sm">Access your digital toolkit</p>
           </div>
 

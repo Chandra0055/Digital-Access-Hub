@@ -51,7 +51,7 @@ export default function SignupPage() {
             <h1 className="text-3xl font-bold tracking-tight mb-2">
               Create Account
             </h1>
-            <p className="text-muted-foreground text-sm">Join Kenter Tech Portal</p>
+            <p className="text-muted-foreground text-sm">Join Ai Blast Portal</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

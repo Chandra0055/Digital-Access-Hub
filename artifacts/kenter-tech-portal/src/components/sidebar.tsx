@@ -30,11 +30,8 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col h-screen sticky top-0">
-      <div className="p-6 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold tracking-tight text-sidebar-foreground">
-          KENTER<span className="text-primary">_TECH</span>
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1 font-mono">PORTAL v2.1</p>
+      <div className="p-4 border-b border-sidebar-border">
+        <img src="/logo.png" alt="Ai Blast" className="h-12 w-auto object-contain" />
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
