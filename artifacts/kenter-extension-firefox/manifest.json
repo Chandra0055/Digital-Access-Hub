@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+  "name": "Kenter Tech Portal",
+  "version": "2.1.0",
+  "description": "Automatically injects session cookies when you access tools from Kenter Tech Portal — making it truly one-click.",
+  "permissions": [
+    "cookies",
+    "tabs",
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "Kenter Tech Portal"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "kenter-tech-portal@extension",
+      "strict_min_version": "57.0"
+    }
+  }
+}

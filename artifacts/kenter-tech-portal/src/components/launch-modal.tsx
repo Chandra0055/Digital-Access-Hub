@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, ExternalLink, RefreshCw, Chrome, Globe } from 'lucide-react';
+import { Download, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,34 +15,46 @@ interface LaunchModalProps {
   toolName: string;
 }
 
-const BROWSERS = [
-  { name: 'Chrome', color: '#4285F4' },
-  { name: 'Firefox', color: '#FF7139' },
-  { name: 'Edge', color: '#0078D4' },
-  { name: 'Brave', color: '#FB542B' },
-  { name: 'Opera', color: '#FF1B2D' },
-];
+type BrowserKey = 'chrome' | 'edge' | 'brave' | 'opera' | 'firefox';
 
-const CHROME_STEPS = [
-  <>Download and <strong className="text-foreground">unzip</strong> the file above</>,
-  <>Open <code className="bg-card text-xs px-1.5 py-0.5 rounded border border-border">chrome://extensions</code> <span className="text-muted-foreground">(or edge:// / brave://)</span></>,
-  <>Enable <strong className="text-foreground">Developer mode</strong> (toggle, top-right)</>,
-  <>Click <strong className="text-foreground">Load unpacked</strong> → select the unzipped folder</>,
-  <>Come back here and click <strong className="text-foreground">Access Tool</strong></>,
-];
+interface BrowserInfo {
+  label: string;
+  dot: string;
+  group: 'chromium' | 'firefox';
+  extensionPage: string;
+}
 
-const FIREFOX_STEPS = [
-  <>Download and <strong className="text-foreground">unzip</strong> the file above</>,
-  <>Open <code className="bg-card text-xs px-1.5 py-0.5 rounded border border-border">about:debugging</code> in Firefox</>,
-  <>Click <strong className="text-foreground">This Firefox</strong> in the left sidebar</>,
-  <>Click <strong className="text-foreground">Load Temporary Add-on…</strong> → select <code className="bg-card text-xs px-1.5 py-0.5 rounded border border-border">manifest.json</code> inside the unzipped folder</>,
-  <>Come back here and click <strong className="text-foreground">Access Tool</strong></>,
-];
+const BROWSERS: Record<BrowserKey, BrowserInfo> = {
+  chrome:  { label: 'Chrome',  dot: '#4285F4', group: 'chromium', extensionPage: 'chrome://extensions' },
+  edge:    { label: 'Edge',    dot: '#0078D4', group: 'chromium', extensionPage: 'edge://extensions' },
+  brave:   { label: 'Brave',   dot: '#FB542B', group: 'chromium', extensionPage: 'brave://extensions' },
+  opera:   { label: 'Opera',   dot: '#FF1B2D', group: 'chromium', extensionPage: 'opera://extensions' },
+  firefox: { label: 'Firefox', dot: '#FF7139', group: 'firefox',  extensionPage: 'about:debugging' },
+};
 
 export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
-  const [browser, setBrowser] = useState<'chrome' | 'firefox'>('chrome');
+  const [browser, setBrowser] = useState<BrowserKey>('chrome');
+  const info = BROWSERS[browser];
+  const isFirefox = info.group === 'firefox';
+  const zipFile = isFirefox ? '/kenter-extension-firefox.zip' : '/kenter-extension-chrome.zip';
 
-  const steps = browser === 'firefox' ? FIREFOX_STEPS : CHROME_STEPS;
+  const chromiumSteps = [
+    <>Download and <strong className="text-foreground">unzip</strong> the file</>,
+    <>Open <code className="bg-background text-xs px-1.5 py-0.5 rounded border border-border">{info.extensionPage}</code></>,
+    <>Enable <strong className="text-foreground">Developer mode</strong> (toggle, top-right)</>,
+    <>Click <strong className="text-foreground">Load unpacked</strong> → select the unzipped folder</>,
+    <>Return here and click <strong className="text-foreground">Access Tool</strong></>,
+  ];
+
+  const firefoxSteps = [
+    <>Download and <strong className="text-foreground">unzip</strong> the file</>,
+    <>Open <code className="bg-background text-xs px-1.5 py-0.5 rounded border border-border">about:debugging</code> in Firefox</>,
+    <>Click <strong className="text-foreground">This Firefox</strong> in the left sidebar</>,
+    <>Click <strong className="text-foreground">Load Temporary Add-on…</strong> → select <code className="bg-background text-xs px-1.5 py-0.5 rounded border border-border">manifest.json</code> from the unzipped folder</>,
+    <>Return here and click <strong className="text-foreground">Access Tool</strong></>,
+  ];
+
+  const steps = isFirefox ? firefoxSteps : chromiumSteps;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -50,57 +62,43 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Extension Required</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
-            To access <strong className="text-foreground">{toolName}</strong>, install the Kenter extension first. It takes under a minute.
+            To access <strong className="text-foreground">{toolName}</strong>, install the Kenter extension first. Pick your browser below.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
 
-          {/* Browser selector */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {BROWSERS.map((b) => {
-              const key = b.name === 'Firefox' ? 'firefox' : 'chrome';
-              const active = browser === key;
-              return (
-                <button
-                  key={b.name}
-                  onClick={() => setBrowser(key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    active
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
-                  }`}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: b.color }}
-                  />
-                  {b.name}
-                </button>
-              );
-            })}
+          {/* Browser picker */}
+          <div className="flex gap-2 flex-wrap">
+            {(Object.entries(BROWSERS) as [BrowserKey, BrowserInfo][]).map(([key, b]) => (
+              <button
+                key={key}
+                onClick={() => setBrowser(key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  browser === key
+                    ? 'bg-primary/10 border-primary text-primary'
+                    : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: b.dot }} />
+                {b.label}
+              </button>
+            ))}
           </div>
 
-          {/* Download button */}
-          <a href="/kenter-extension.zip" download="kenter-extension.zip" className="block">
+          {/* Download */}
+          <a href={zipFile} download={`kenter-extension-${isFirefox ? 'firefox' : 'chrome'}.zip`} className="block">
             <Button className="w-full" size="lg" data-testid="button-download-extension">
               <Download className="w-4 h-4 mr-2" />
-              Download Kenter Extension
+              Download for {info.label}
             </Button>
           </a>
 
-          {/* Install steps */}
-          <div className="bg-background border border-border rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              {browser === 'firefox' ? (
-                <Globe className="w-3.5 h-3.5 text-orange-400" />
-              ) : (
-                <Chrome className="w-3.5 h-3.5 text-blue-400" />
-              )}
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {browser === 'firefox' ? 'Firefox instructions' : 'Chrome / Edge / Brave / Opera'}
-              </p>
-            </div>
+          {/* Steps */}
+          <div className="bg-background border border-border rounded-lg p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              How to install
+            </p>
             <ol className="space-y-2.5">
               {steps.map((step, i) => (
                 <li key={i} className="flex gap-3 items-start text-sm text-muted-foreground">
@@ -112,17 +110,17 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
               ))}
             </ol>
 
-            {browser === 'firefox' && (
-              <p className="text-xs text-amber-500/80 border-t border-border pt-3 leading-relaxed">
-                Firefox temporary add-ons are removed on restart. For a permanent install, the extension needs to be self-signed or submitted to Firefox Add-ons.
+            {isFirefox && (
+              <p className="text-xs text-amber-500/80 border-t border-border pt-3 mt-3 leading-relaxed">
+                Firefox temporary add-ons reset on restart. Reinstall using the same steps after restarting Firefox.
               </p>
             )}
           </div>
 
-          {/* Already installed — reload to activate */}
+          {/* Already installed */}
           <div className="bg-background border border-border rounded-lg p-3 flex items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Already installed? Reload the page to activate it.
+            <p className="text-xs text-muted-foreground">
+              Already installed? Reload to activate.
             </p>
             <Button
               size="sm"
@@ -147,6 +145,7 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
             </a>
             <Button variant="ghost" size="sm" onClick={onClose}>Close</Button>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
