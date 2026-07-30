@@ -41,17 +41,16 @@ router.get("/tools", requireAuth, async (req, res): Promise<void> => {
 
   let tools = await db.select().from(toolsTable).orderBy(toolsTable.createdAt);
 
-  // Filter by user's tool access (non-admin with specific grants)
+  // Filter by user's tool access (non-admin must have explicit grants)
   if (user.role !== "admin") {
     const accessRows = await db
       .select()
       .from(userToolAccessTable)
       .where(eq(userToolAccessTable.userId, user.id));
 
-    if (accessRows.length > 0) {
-      const allowedIds = new Set(accessRows.map((r) => r.toolId));
-      tools = tools.filter((t) => allowedIds.has(t.id));
-    }
+    // No rows = no access (access must be explicitly granted by admin)
+    const allowedIds = new Set(accessRows.map((r) => r.toolId));
+    tools = tools.filter((t) => allowedIds.has(t.id));
   }
 
   if (params.category) tools = tools.filter((t) => t.category === params.category);

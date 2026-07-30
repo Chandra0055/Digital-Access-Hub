@@ -1,9 +1,9 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useListTools, useAdminGetStats, getListToolsQueryKey, getAdminGetStatsQueryKey } from '@workspace/api-client-react';
-import { StatusBadge } from '@/components/status-badge';
-import { Package, Users, CreditCard, TrendingUp } from 'lucide-react';
+import { Package, Users, UserCheck, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isPast, format } from 'date-fns';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ export default function DashboardPage() {
             Welcome back, {user?.name}
           </h1>
           <p className="text-muted-foreground">
-            Your subscription is <StatusBadge status={user?.subscriptionStatus || 'inactive'} />
+            {user?.role === 'admin' ? 'Administrator dashboard' : 'Your personal dashboard'}
           </p>
         </div>
 
@@ -61,8 +61,8 @@ export default function DashboardPage() {
                   delay={0.1}
                 />
                 <StatCard
-                  icon={CreditCard}
-                  label="Active Subscriptions"
+                  icon={UserCheck}
+                  label="Active Customers"
                   value={stats?.activeSubscriptions || 0}
                   delay={0.2}
                 />
@@ -97,8 +97,14 @@ export default function DashboardPage() {
                   <span className="text-sm font-mono font-semibold uppercase">{user?.role}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Account Status</span>
-                  <StatusBadge status={user?.subscriptionStatus || 'inactive'} />
+                  <span className="text-sm text-muted-foreground">Access Valid Until</span>
+                  <span className="text-sm font-mono">
+                    {user?.validUntil
+                      ? isPast(new Date(user.validUntil))
+                        ? <span className="text-red-500">Expired {format(new Date(user.validUntil), 'MMM dd, yyyy')}</span>
+                        : format(new Date(user.validUntil), 'MMM dd, yyyy')
+                      : 'Unlimited'}
+                  </span>
                 </div>
               </>
             )}
