@@ -20,9 +20,14 @@ export default function ToolsPage() {
   const [extInstalled, setExtInstalled] = useState(false);
   const { toast } = useToast();
 
-  // Detect the Kenter extension (content script sets window.__kenterExtInstalled)
+  // Detect the Kenter extension.
+  // The content script runs at document_start and sets data-kenter-ext="1" on
+  // <html>. DOM attributes are shared across the isolated-world boundary, so
+  // this is visible to page JS even though window.* vars are not.
+  // We also listen for the kenter:extensionReady event which covers the case
+  // where the background script dynamically injects into an already-open tab.
   useEffect(() => {
-    if ((window as any).__kenterExtInstalled) {
+    if (document.documentElement.getAttribute('data-kenter-ext') === '1') {
       setExtInstalled(true);
       return;
     }

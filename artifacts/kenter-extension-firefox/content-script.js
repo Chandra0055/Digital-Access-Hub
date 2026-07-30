@@ -1,8 +1,10 @@
 // Kenter Tech Portal — Content Script (MV2 / Firefox)
 // Idempotent: safe to run multiple times.
 (function () {
-  if (window.__kenterExtInstalled) return;
-  window.__kenterExtInstalled = true;
+  if (document.documentElement.getAttribute('data-kenter-ext')) return;
+
+  // DOM attributes are shared across the isolated-world boundary.
+  document.documentElement.setAttribute('data-kenter-ext', '1');
 
   window.dispatchEvent(new CustomEvent('kenter:extensionReady'));
 

@@ -1,9 +1,14 @@
 // Kenter Tech Portal — Content Script (MV3 / Chrome)
 // Idempotent: safe to run multiple times.
 (function () {
-  if (window.__kenterExtInstalled) return;
-  window.__kenterExtInstalled = true;
+  if (document.documentElement.getAttribute('data-kenter-ext')) return;
 
+  // DOM attributes are shared across the isolated-world boundary —
+  // the page's JS can read this even though window.* vars cannot be shared.
+  document.documentElement.setAttribute('data-kenter-ext', '1');
+
+  // Also dispatch an event for the dynamic-injection case
+  // (when the background script pushes this script into an already-open tab).
   window.dispatchEvent(new CustomEvent('kenter:extensionReady'));
 
   window.addEventListener('kenter:injectAndOpen', function (event) {
