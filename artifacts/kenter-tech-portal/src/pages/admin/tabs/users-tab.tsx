@@ -37,7 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isPast } from 'date-fns';
-import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash } from 'lucide-react';
+import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash, ShieldOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Validity preset helper ─────────────────────────────────────────────────
@@ -468,6 +468,7 @@ export function UsersTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [managingUser, setManagingUser] = useState<UserWithSubscription | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserWithSubscription | null>(null);
+  const [revokingUser, setRevokingUser] = useState<UserWithSubscription | null>(null);
 
   const { data: users, isLoading } = useAdminListUsers({
     query: { queryKey: getAdminListUsersQueryKey() },
@@ -476,11 +477,29 @@ export function UsersTab() {
     query: { queryKey: getListToolsQueryKey() },
   });
   const deleteUserMutation = useAdminDeleteUser();
+  const revokeUserMutation = useAdminUpdateUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const allToolIds = tools?.map((t) => t.id) ?? [];
   const allToolNames = new Map(tools?.map((t) => [t.id, t.name]) ?? []);
+
+  const handleRevoke = () => {
+    if (!revokingUser) return;
+    revokeUserMutation.mutate(
+      { id: revokingUser.id, data: { subscriptionStatus: 'expired', accessDays: null } },
+      {
+        onSuccess: () => {
+          toast({ title: 'Subscription revoked', description: `${revokingUser.name}'s access has been revoked.` });
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+          setRevokingUser(null);
+        },
+        onError: (err: any) => {
+          toast({ title: 'Revoke failed', description: err.message, variant: 'destructive' });
+        },
+      }
+    );
+  };
 
   const handleDelete = () => {
     if (!deletingUser) return;
@@ -567,6 +586,18 @@ export function UsersTab() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {(user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trial') && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-amber-600 border-amber-300 hover:bg-amber-50 hover:text-amber-700"
+                          onClick={() => setRevokingUser(user)}
+                          data-testid={`button-revoke-${user.id}`}
+                        >
+                          <ShieldOff className="w-3.5 h-3.5 mr-1" />
+                          Revoke
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -611,6 +642,28 @@ export function UsersTab() {
           allToolNames={allToolNames}
         />
       )}
+
+      <AlertDialog open={!!revokingUser} onOpenChange={(v) => !v && setRevokingUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke subscription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately revoke <strong>{revokingUser?.name}</strong>'s subscription and block their access to all tools. You can re-activate them from the Manage dialog at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevoke}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+              disabled={revokeUserMutation.isPending}
+            >
+              <ShieldOff className="w-3.5 h-3.5 mr-1.5" />
+              Revoke Access
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deletingUser} onOpenChange={(v) => !v && setDeletingUser(null)}>
         <AlertDialogContent>
