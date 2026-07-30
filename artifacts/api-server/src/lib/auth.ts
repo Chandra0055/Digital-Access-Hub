@@ -3,6 +3,27 @@ import type { Request, Response, NextFunction } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
+/**
+ * If a user's validUntil has passed and they're not already 'expired',
+ * auto-update their subscriptionStatus to 'expired' in the DB and on the object.
+ */
+async function autoExpireIfNeeded(user: typeof usersTable.$inferSelect): Promise<typeof usersTable.$inferSelect> {
+  if (
+    user.role !== "admin" &&
+    user.subscriptionStatus !== "expired" &&
+    user.validUntil !== null &&
+    new Date(user.validUntil) < new Date()
+  ) {
+    const [updated] = await db
+      .update(usersTable)
+      .set({ subscriptionStatus: "expired" })
+      .where(eq(usersTable.id, user.id))
+      .returning();
+    return updated ?? user;
+  }
+  return user;
+}
+
 const JWT_SECRET = process.env.SESSION_SECRET ?? "kenter-secret-dev";
 
 export function signToken(payload: { userId: number; role: string }): string {
@@ -26,15 +47,15 @@ export async function requireAuth(
   const token = header.slice(7);
   try {
     const payload = verifyToken(token);
-    const [user] = await db
+    const [rawUser] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, payload.userId));
-    if (!user) {
+    if (!rawUser) {
       res.status(401).json({ error: "User not found" });
       return;
     }
-    req.user = user;
+    req.user = await autoExpireIfNeeded(rawUser);
     next();
   } catch {
     res.status(401).json({ error: "Invalid token" });
