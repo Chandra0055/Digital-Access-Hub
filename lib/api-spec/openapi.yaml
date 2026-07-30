@@ -609,7 +609,7 @@ components:
     # ─── Tool schemas ────────────────────────────────────────────────────────
     Tool:
       type: object
-      required: [id, name, description, status, category, redirectUrl, createdAt]
+      required: [id, name, description, status, category, redirectUrl, createdAt, hasAccess]
       properties:
         id:
           type: number
@@ -628,10 +628,13 @@ components:
           type: ["string", "null"]
         cookieData:
           type: ["string", "null"]
-          description: "Session cookie data — only returned for admins"
+          description: "Session cookie data — only returned when user has access"
         createdAt:
           type: string
           format: date-time
+        hasAccess:
+          type: boolean
+          description: "True if this user has been granted access to this tool"
 
     ToolInput:
       type: object

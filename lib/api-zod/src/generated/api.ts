@@ -102,8 +102,9 @@ export const ListToolsResponseItem = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "cookieData": zod.string().nullish().describe('Session cookie data — only returned for admins'),
-  "createdAt": zod.coerce.date()
+  "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
+  "createdAt": zod.coerce.date(),
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
 })
 export const ListToolsResponse = zod.array(ListToolsResponseItem)
 
@@ -132,8 +133,9 @@ export const CreateToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "cookieData": zod.string().nullish().describe('Session cookie data — only returned for admins'),
-  "createdAt": zod.coerce.date()
+  "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
+  "createdAt": zod.coerce.date(),
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
 })
 
 
@@ -152,8 +154,9 @@ export const GetToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "cookieData": zod.string().nullish().describe('Session cookie data — only returned for admins'),
-  "createdAt": zod.coerce.date()
+  "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
+  "createdAt": zod.coerce.date(),
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
 })
 
 
@@ -185,8 +188,9 @@ export const UpdateToolResponse = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().nullish(),
-  "cookieData": zod.string().nullish().describe('Session cookie data — only returned for admins'),
-  "createdAt": zod.coerce.date()
+  "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
+  "createdAt": zod.coerce.date(),
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
 })
 
 

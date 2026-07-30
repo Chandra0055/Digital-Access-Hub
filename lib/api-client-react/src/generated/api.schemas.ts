@@ -196,11 +196,13 @@ export interface Tool {
   /** @nullable */
   iconUrl?: string | null;
   /**
-     * Session cookie data — only returned for admins
+     * Session cookie data — only returned when user has access
      * @nullable
      */
   cookieData?: string | null;
   createdAt: string;
+  /** True if this user has been granted access to this tool */
+  hasAccess: boolean;
 }
 
 export type ToolInputStatus = typeof ToolInputStatus[keyof typeof ToolInputStatus];

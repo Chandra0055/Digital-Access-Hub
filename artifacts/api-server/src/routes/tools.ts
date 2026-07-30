@@ -13,7 +13,11 @@ import {
 
 const router: IRouter = Router();
 
-function serializeTool(tool: typeof toolsTable.$inferSelect, hideSecrets = false) {
+function serializeTool(
+  tool: typeof toolsTable.$inferSelect,
+  hasAccess: boolean,
+  hideSecrets: boolean,
+) {
   return {
     id: tool.id,
     name: tool.name,
@@ -22,45 +26,50 @@ function serializeTool(tool: typeof toolsTable.$inferSelect, hideSecrets = false
     category: tool.category,
     redirectUrl: tool.redirectUrl,
     iconUrl: tool.iconUrl ?? null,
-    cookieData: hideSecrets ? null : (tool.cookieData ?? null),
+    // Strip secrets when subscription is expired OR user has no access to this tool
+    cookieData: (hideSecrets || !hasAccess) ? null : (tool.cookieData ?? null),
     createdAt: tool.createdAt,
+    hasAccess,
   };
 }
 
-// GET /tools
+// GET /tools — returns ALL tools; hasAccess indicates which ones this user can use
 router.get("/tools", requireAuth, async (req, res): Promise<void> => {
   const user = req.user!;
 
-  // Determine if this subscriber's subscription is active
+  // Subscription active check (admins always pass)
   const subscriptionExpired =
     user.role !== "admin" &&
     (user.subscriptionStatus !== "active" ||
       (user.validUntil !== null && new Date(user.validUntil) < new Date()));
-
-  // If expired, still return the list (so UI can show disabled state) but strip secrets
-  const hideSecrets = subscriptionExpired;
 
   const parsed = ListToolsQueryParams.safeParse(req.query);
   const params = parsed.success ? parsed.data : {};
 
   let tools = await db.select().from(toolsTable).orderBy(toolsTable.createdAt);
 
-  // Filter by user's tool access (non-admin must have explicit grants)
-  if (user.role !== "admin") {
-    const accessRows = await db
-      .select()
-      .from(userToolAccessTable)
-      .where(eq(userToolAccessTable.userId, user.id));
-
-    // No rows = no access (access must be explicitly granted by admin)
-    const allowedIds = new Set(accessRows.map((r) => r.toolId));
-    tools = tools.filter((t) => allowedIds.has(t.id));
-  }
-
   if (params.category) tools = tools.filter((t) => t.category === params.category);
   if (params.status) tools = tools.filter((t) => t.status === params.status);
 
-  res.json(tools.map((t) => serializeTool(t, hideSecrets)));
+  // Admins can see and access everything
+  if (user.role === "admin") {
+    res.json(tools.map((t) => serializeTool(t, true, false)));
+    return;
+  }
+
+  // For subscribers: load their granted tool IDs
+  const accessRows = await db
+    .select()
+    .from(userToolAccessTable)
+    .where(eq(userToolAccessTable.userId, user.id));
+  const allowedIds = new Set(accessRows.map((r) => r.toolId));
+
+  res.json(
+    tools.map((t) => {
+      const hasAccess = allowedIds.has(t.id) && !subscriptionExpired;
+      return serializeTool(t, hasAccess, subscriptionExpired);
+    }),
+  );
 });
 
 // POST /tools
