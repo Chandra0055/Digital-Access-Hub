@@ -164,7 +164,21 @@ export default function AiBlastsPage() {
                 className="border border-border bg-card rounded p-5 hover:border-primary/50 transition-colors"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-lg">{tool.name}</h3>
+                  <div className="flex items-center gap-3">
+                    {tool.iconUrl ? (
+                      <img
+                        src={tool.iconUrl}
+                        alt={tool.name}
+                        className="w-10 h-10 rounded object-contain flex-shrink-0 border border-border bg-white p-0.5"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary font-bold text-base">
+                        {tool.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <h3 className="font-semibold text-lg leading-tight">{tool.name}</h3>
+                  </div>
                   <StatusBadge status={tool.status} />
                 </div>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{tool.description}</p>
