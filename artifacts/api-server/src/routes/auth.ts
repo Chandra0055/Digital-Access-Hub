@@ -7,13 +7,14 @@ import { SignupBody, LoginBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-function serializeUser(user: typeof usersTable.$inferSelect) {
+export function serializeUser(user: typeof usersTable.$inferSelect) {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
     subscriptionStatus: user.subscriptionStatus,
+    validUntil: user.validUntil ?? null,
     createdAt: user.createdAt,
   };
 }

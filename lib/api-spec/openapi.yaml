@@ -3,7 +3,7 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: Kenter Tech Portal API
+  description: Ai Blast Portal API
 servers:
   - url: /api
     description: Base API path
@@ -13,7 +13,7 @@ tags:
   - name: auth
     description: Authentication operations
   - name: tools
-    description: Digital tools
+    description: Ai Blast tools
   - name: admin
     description: Admin operations
   - name: subscriptions
@@ -118,12 +118,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
-  # ─── Tools ────────────────────────────────────────────────────────────────
+  # ─── Ai Blast Tools ───────────────────────────────────────────────────────
   /tools:
     get:
       operationId: listTools
       tags: [tools]
-      summary: List all tools
+      summary: List accessible Ai Blast tools
       parameters:
         - name: category
           in: query
@@ -135,7 +135,7 @@ paths:
             type: string
       responses:
         "200":
-          description: List of tools
+          description: List of Ai Blast tools
           content:
             application/json:
               schema:
@@ -145,7 +145,7 @@ paths:
     post:
       operationId: createTool
       tags: [tools]
-      summary: Create a new tool (admin only)
+      summary: Create a new Ai Blast (admin only)
       requestBody:
         required: true
         content:
@@ -164,7 +164,7 @@ paths:
     get:
       operationId: getTool
       tags: [tools]
-      summary: Get a tool by ID
+      summary: Get an Ai Blast by ID
       parameters:
         - name: id
           in: path
@@ -173,7 +173,7 @@ paths:
             type: number
       responses:
         "200":
-          description: Tool
+          description: Ai Blast
           content:
             application/json:
               schema:
@@ -187,7 +187,7 @@ paths:
     patch:
       operationId: updateTool
       tags: [tools]
-      summary: Update a tool (admin only)
+      summary: Update an Ai Blast (admin only)
       parameters:
         - name: id
           in: path
@@ -202,7 +202,7 @@ paths:
               $ref: "#/components/schemas/ToolUpdate"
       responses:
         "200":
-          description: Updated tool
+          description: Updated Ai Blast
           content:
             application/json:
               schema:
@@ -216,7 +216,7 @@ paths:
     delete:
       operationId: deleteTool
       tags: [tools]
-      summary: Delete a tool (admin only)
+      summary: Delete an Ai Blast (admin only)
       parameters:
         - name: id
           in: path
@@ -241,7 +241,7 @@ paths:
       summary: Get the current user's subscription
       responses:
         "200":
-          description: Subscription (null if none)
+          description: Subscription
           content:
             application/json:
               schema:
@@ -312,12 +312,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/UserWithSubscription"
+    post:
+      operationId: adminCreateUser
+      tags: [admin]
+      summary: Create a customer account (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCreateUser"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /admin/users/{id}:
     patch:
       operationId: adminUpdateUser
       tags: [admin]
-      summary: Update a user's role or status (admin only)
+      summary: Update a user's role, status, or access validity (admin only)
       parameters:
         - name: id
           in: path
@@ -343,6 +366,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: adminDeleteUser
+      tags: [admin]
+      summary: Delete a user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/users/{id}/tools:
+    get:
+      operationId: adminGetUserTools
+      tags: [admin]
+      summary: Get tool access list for a user (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Tool IDs the user can access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserToolAccess"
+    put:
+      operationId: adminSetUserTools
+      tags: [admin]
+      summary: Set tool access list for a user — replaces all (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserToolAccess"
+      responses:
+        "200":
+          description: Updated tool access
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserToolAccess"
 
   /admin/stats:
     get:
@@ -437,13 +521,17 @@ components:
         subscriptionStatus:
           type: string
           enum: [active, inactive, trial, expired]
+        validUntil:
+          type: ["string", "null"]
+          format: date-time
+          description: "When null, access never expires"
         createdAt:
           type: string
           format: date-time
 
     UserWithSubscription:
       type: object
-      required: [id, name, email, role, subscriptionStatus, createdAt]
+      required: [id, name, email, role, subscriptionStatus, createdAt, toolIds]
       properties:
         id:
           type: number
@@ -457,11 +545,44 @@ components:
         subscriptionStatus:
           type: string
           enum: [active, inactive, trial, expired]
+        validUntil:
+          type: ["string", "null"]
+          format: date-time
+        toolIds:
+          type: array
+          items:
+            type: number
+          description: "IDs of Ai Blasts this user can access (empty = all)"
         createdAt:
           type: string
           format: date-time
         subscription:
           $ref: "#/components/schemas/Subscription"
+
+    AdminCreateUser:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 6
+        role:
+          type: string
+          enum: [admin, subscriber]
+          default: subscriber
+        accessDays:
+          type: number
+          description: "Number of days until access expires. Omit for unlimited."
+        toolIds:
+          type: array
+          items:
+            type: number
+          description: "Ai Blast IDs to grant access to. Empty/omit = all."
 
     UserAdminUpdate:
       type: object
@@ -472,6 +593,18 @@ components:
         subscriptionStatus:
           type: string
           enum: [active, inactive, trial, expired]
+        accessDays:
+          type: ["number", "null"]
+          description: "Days from now until access expires. null = remove expiry."
+
+    UserToolAccess:
+      type: object
+      required: [toolIds]
+      properties:
+        toolIds:
+          type: array
+          items:
+            type: number
 
     # ─── Tool schemas ────────────────────────────────────────────────────────
     Tool:
@@ -495,7 +628,7 @@ components:
           type: ["string", "null"]
         cookieData:
           type: ["string", "null"]
-          description: "Session cookie data for this tool — only visible to admins"
+          description: "Session cookie data — only returned for admins"
         createdAt:
           type: string
           format: date-time
@@ -520,7 +653,6 @@ components:
           type: string
         cookieData:
           type: string
-          description: "Session cookie data for this tool — only visible to admins"
 
     ToolUpdate:
       type: object
@@ -541,7 +673,6 @@ components:
           type: string
         cookieData:
           type: string
-          description: "Session cookie data for this tool — only visible to admins"
 
     # ─── Subscription schemas ─────────────────────────────────────────────────
     Subscription:

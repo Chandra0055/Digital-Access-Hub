@@ -1,45 +1,430 @@
-import { useAdminListUsers, useAdminUpdateUser, getAdminListUsersQueryKey } from '@workspace/api-client-react';
+import { useState } from 'react';
+import {
+  useAdminListUsers,
+  useAdminCreateUser,
+  useAdminUpdateUser,
+  useAdminDeleteUser,
+  useAdminSetUserTools,
+  getAdminListUsersQueryKey,
+  useListTools,
+  getListToolsQueryKey,
+} from '@workspace/api-client-react';
+import type { UserWithSubscription } from '@workspace/api-client-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { StatusBadge } from '@/components/status-badge';
+import { format, isPast } from 'date-fns';
+import { Plus, Trash2, Settings2, Calendar, Infinity } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
-export function UsersTab() {
-  const { data: users, isLoading } = useAdminListUsers({
-    query: { queryKey: getAdminListUsersQueryKey() },
-  });
-  const updateUserMutation = useAdminUpdateUser();
+// ─── Validity preset helper ─────────────────────────────────────────────────
+
+type ValidityPreset = '1' | '7' | '25' | '90' | 'unlimited' | 'custom';
+
+const PRESET_LABELS: Record<ValidityPreset, string> = {
+  '1': '1 Day',
+  '7': '7 Days',
+  '25': '25 Days',
+  '90': '90 Days',
+  'unlimited': 'Unlimited',
+  'custom': 'Custom',
+};
+
+function ValidityPicker({
+  preset,
+  customDays,
+  onPreset,
+  onCustomDays,
+}: {
+  preset: ValidityPreset;
+  customDays: string;
+  onPreset: (v: ValidityPreset) => void;
+  onCustomDays: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {(Object.entries(PRESET_LABELS) as [ValidityPreset, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onPreset(key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              preset === key
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {preset === 'custom' && (
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            min="1"
+            placeholder="Number of days"
+            value={customDays}
+            onChange={(e) => onCustomDays(e.target.value)}
+            className="w-40 h-8 text-sm"
+          />
+          <span className="text-sm text-muted-foreground">days</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getAccessDays(preset: ValidityPreset, customDays: string): number | undefined {
+  if (preset === 'unlimited') return undefined;
+  if (preset === 'custom') return customDays ? parseInt(customDays, 10) : undefined;
+  return parseInt(preset, 10);
+}
+
+// ─── Tool access picker ──────────────────────────────────────────────────────
+
+function ToolAccessPicker({
+  allToolIds,
+  allToolNames,
+  selectedIds,
+  onChange,
+}: {
+  allToolIds: number[];
+  allToolNames: Map<number, string>;
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+}) {
+  const allSelected = selectedIds.length === 0;
+
+  return (
+    <div className="space-y-2 max-h-48 overflow-y-auto border border-border rounded-lg p-3">
+      {/* "All Ai Blasts" option */}
+      <label className="flex items-center gap-2 cursor-pointer py-1">
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={(c) => c && onChange([])}
+        />
+        <span className="text-sm font-medium">All Ai Blasts</span>
+        <span className="text-xs text-muted-foreground ml-1">(no restriction)</span>
+      </label>
+      <div className="border-t border-border my-1" />
+      {allToolIds.map((id) => (
+        <label key={id} className="flex items-center gap-2 cursor-pointer py-0.5">
+          <Checkbox
+            checked={selectedIds.includes(id)}
+            onCheckedChange={(c) => {
+              if (c) {
+                onChange([...selectedIds, id]);
+              } else {
+                onChange(selectedIds.filter((x) => x !== id));
+              }
+            }}
+          />
+          <span className="text-sm">{allToolNames.get(id)}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// ─── Create user dialog ──────────────────────────────────────────────────────
+
+function CreateUserDialog({
+  open,
+  onClose,
+  allToolIds,
+  allToolNames,
+}: {
+  open: boolean;
+  onClose: () => void;
+  allToolIds: number[];
+  allToolNames: Map<number, string>;
+}) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'subscriber' | 'admin'>('subscriber');
+  const [preset, setPreset] = useState<ValidityPreset>('unlimited');
+  const [customDays, setCustomDays] = useState('');
+  const [toolIds, setToolIds] = useState<number[]>([]);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const createMutation = useAdminCreateUser();
+  const setToolsMutation = useAdminSetUserTools();
 
-  const handleRoleChange = (userId: number, role: 'admin' | 'subscriber') => {
-    updateUserMutation.mutate(
-      { id: userId, data: { role } },
+  const reset = () => {
+    setName(''); setEmail(''); setPassword('');
+    setRole('subscriber'); setPreset('unlimited');
+    setCustomDays(''); setToolIds([]);
+  };
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const accessDays = getAccessDays(preset, customDays);
+
+    createMutation.mutate(
+      { data: { name, email, password, role, accessDays, toolIds } },
       {
-        onSuccess: () => {
-          toast({ title: 'User role updated' });
+        onSuccess: async (newUser) => {
+          // If specific tools selected, set tool access
+          if (toolIds.length > 0) {
+            await setToolsMutation.mutateAsync({ id: newUser.id, data: { toolIds } });
+          }
+          toast({ title: 'Customer created', description: `${name} can now log in.` });
           queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+          handleClose();
         },
-        onError: (error: any) => {
-          toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+        onError: (err: any) => {
+          toast({ title: 'Failed to create customer', description: err.message, variant: 'destructive' });
         },
       }
     );
   };
 
-  const handleStatusChange = (userId: number, subscriptionStatus: 'active' | 'inactive' | 'trial' | 'expired') => {
-    updateUserMutation.mutate(
-      { id: userId, data: { subscriptionStatus } },
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create Customer</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-name">Full name</Label>
+              <Input id="new-name" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Jane Smith" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-email">Email</Label>
+              <Input id="new-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="jane@company.com" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-password">Password</Label>
+              <Input id="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Min 6 characters" minLength={6} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="subscriber">Subscriber</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Access Validity</Label>
+            <ValidityPicker preset={preset} customDays={customDays} onPreset={setPreset} onCustomDays={setCustomDays} />
+          </div>
+
+          {allToolIds.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Ai Blast Access</Label>
+              <ToolAccessPicker
+                allToolIds={allToolIds}
+                allToolNames={allToolNames}
+                selectedIds={toolIds}
+                onChange={setToolIds}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Creating…' : 'Create Customer'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Manage user dialog ───────────────────────────────────────────────────────
+
+function ManageUserDialog({
+  user,
+  onClose,
+  allToolIds,
+  allToolNames,
+}: {
+  user: UserWithSubscription;
+  onClose: () => void;
+  allToolIds: number[];
+  allToolNames: Map<number, string>;
+}) {
+  const [preset, setPreset] = useState<ValidityPreset>('unlimited');
+  const [customDays, setCustomDays] = useState('');
+  const [toolIds, setToolIds] = useState<number[]>(user.toolIds ?? []);
+  const [role, setRole] = useState<'admin' | 'subscriber'>(user.role as any);
+  const [status, setStatus] = useState(user.subscriptionStatus);
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const updateMutation = useAdminUpdateUser();
+  const setToolsMutation = useAdminSetUserTools();
+
+  const handleSave = async () => {
+    const accessDays = getAccessDays(preset, customDays);
+
+    try {
+      // Update user role/status/validity
+      await updateMutation.mutateAsync({
+        id: user.id,
+        data: {
+          role: role as any,
+          subscriptionStatus: status as any,
+          ...(preset !== 'unlimited' && accessDays ? { accessDays } : preset === 'unlimited' && user.validUntil ? { accessDays: null } : {}),
+        },
+      });
+
+      // Update tool access
+      await setToolsMutation.mutateAsync({ id: user.id, data: { toolIds } });
+
+      toast({ title: 'Customer updated' });
+      queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+      onClose();
+    } catch (err: any) {
+      toast({ title: 'Update failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const currentExpiry = user.validUntil ? new Date(user.validUntil) : null;
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Manage: {user.name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {currentExpiry && (
+            <div className={`text-xs rounded-lg px-3 py-2 border ${isPast(currentExpiry) ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-700'}`}>
+              {isPast(currentExpiry)
+                ? `⚠ Access expired on ${format(currentExpiry, 'MMM d, yyyy')}`
+                : `Access expires ${format(currentExpiry, 'MMM d, yyyy')}`}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Role</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="subscriber">Subscriber</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="trial">Trial</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Extend / Set Validity</Label>
+            <p className="text-xs text-muted-foreground">Choose a preset to update the expiry date from today.</p>
+            <ValidityPicker preset={preset} customDays={customDays} onPreset={setPreset} onCustomDays={setCustomDays} />
+          </div>
+
+          {allToolIds.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Ai Blast Access</Label>
+              <ToolAccessPicker
+                allToolIds={allToolIds}
+                allToolNames={allToolNames}
+                selectedIds={toolIds}
+                onChange={setToolIds}
+              />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} disabled={updateMutation.isPending || setToolsMutation.isPending}>
+            {(updateMutation.isPending || setToolsMutation.isPending) ? 'Saving…' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Main tab ─────────────────────────────────────────────────────────────────
+
+export function UsersTab() {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [managingUser, setManagingUser] = useState<UserWithSubscription | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserWithSubscription | null>(null);
+
+  const { data: users, isLoading } = useAdminListUsers({
+    query: { queryKey: getAdminListUsersQueryKey() },
+  });
+  const { data: tools } = useListTools(undefined, {
+    query: { queryKey: getListToolsQueryKey() },
+  });
+  const deleteUserMutation = useAdminDeleteUser();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const allToolIds = tools?.map((t) => t.id) ?? [];
+  const allToolNames = new Map(tools?.map((t) => [t.id, t.name]) ?? []);
+
+  const handleDelete = () => {
+    if (!deletingUser) return;
+    deleteUserMutation.mutate(
+      { id: deletingUser.id },
       {
         onSuccess: () => {
-          toast({ title: 'User status updated' });
+          toast({ title: 'Customer deleted' });
           queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+          setDeletingUser(null);
         },
-        onError: (error: any) => {
-          toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+        onError: (err: any) => {
+          toast({ title: 'Delete failed', description: err.message, variant: 'destructive' });
         },
       }
     );
@@ -48,74 +433,135 @@ export function UsersTab() {
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
       </div>
     );
   }
 
   return (
-    <div className="border border-card-border bg-card rounded">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Joined</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users?.map((user) => (
-            <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-              <TableCell>
-                <div>
-                  <p className="font-medium">{user.name}</p>
-                  <p className="text-sm text-muted-foreground font-mono">{user.email}</p>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Select
-                  value={user.role}
-                  onValueChange={(v) => handleRoleChange(user.id, v as 'admin' | 'subscriber')}
-                  data-testid={`select-role-${user.id}`}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="subscriber">Subscriber</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Select
-                  value={user.subscriptionStatus}
-                  onValueChange={(v) => handleStatusChange(user.id, v as any)}
-                  data-testid={`select-status-${user.id}`}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="trial">Trial</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm font-mono text-muted-foreground">
-                  {format(new Date(user.createdAt), 'MMM dd, yyyy')}
-                </span>
-              </TableCell>
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-muted-foreground">{users?.length ?? 0} customer(s)</p>
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          <Plus className="w-4 h-4 mr-1.5" />
+          Create Customer
+        </Button>
+      </div>
+
+      <div className="border border-border bg-card rounded">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>
+                <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Valid Until</span>
+              </TableHead>
+              <TableHead>Ai Blasts</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {users?.map((user) => {
+              const expiry = user.validUntil ? new Date(user.validUntil) : null;
+              const expired = expiry ? isPast(expiry) : false;
+              const toolCount = user.toolIds?.length ?? 0;
+
+              return (
+                <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{user.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {expiry ? (
+                      <span className={`text-sm font-mono ${expired ? 'text-red-500' : 'text-foreground'}`}>
+                        {expired ? '⚠ ' : ''}{format(expiry, 'MMM d, yyyy')}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                        <Infinity className="w-3.5 h-3.5" /> Unlimited
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {toolCount === 0 ? 'All' : `${toolCount} selected`}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setManagingUser(user)}
+                        data-testid={`button-manage-${user.id}`}
+                      >
+                        <Settings2 className="w-3.5 h-3.5 mr-1" />
+                        Manage
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeletingUser(user)}
+                        data-testid={`button-delete-${user.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {createOpen && (
+        <CreateUserDialog
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          allToolIds={allToolIds}
+          allToolNames={allToolNames}
+        />
+      )}
+
+      {managingUser && (
+        <ManageUserDialog
+          user={managingUser}
+          onClose={() => setManagingUser(null)}
+          allToolIds={allToolIds}
+          allToolNames={allToolNames}
+        />
+      )}
+
+      <AlertDialog open={!!deletingUser} onOpenChange={(v) => !v && setDeletingUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{deletingUser?.name}</strong> ({deletingUser?.email}) and all their data. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

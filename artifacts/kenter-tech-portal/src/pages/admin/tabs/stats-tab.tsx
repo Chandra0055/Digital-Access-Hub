@@ -52,7 +52,7 @@ export function StatsTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="border border-card-border bg-card rounded p-6">
-          <h3 className="text-lg font-semibold mb-4">Tools by Category</h3>
+          <h3 className="text-lg font-semibold mb-4">Ai Blasts by Category</h3>
           <div className="space-y-3">
             {stats?.toolsByCategory.map((item) => (
               <div key={item.category} className="flex justify-between items-center">

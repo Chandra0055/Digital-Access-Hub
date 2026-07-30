@@ -68,7 +68,7 @@ export function ToolsTab() {
       <div className="flex justify-end mb-4">
         <Button onClick={() => setLocation('/admin/tools/new')} data-testid="button-add-tool">
           <Plus className="w-4 h-4 mr-2" />
-          Add Tool
+          Add Ai Blast
         </Button>
       </div>
 
@@ -137,9 +137,9 @@ export function ToolsTab() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tool</AlertDialogTitle>
+            <AlertDialogTitle>Delete Ai Blast</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this tool? This action cannot be undone.
+              Are you sure you want to delete this Ai Blast? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

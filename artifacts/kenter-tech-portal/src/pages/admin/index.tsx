@@ -16,7 +16,7 @@ export default function AdminPage() {
       >
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-2">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, tools, and subscriptions</p>
+          <p className="text-muted-foreground">Manage customers, Ai Blasts, and subscriptions</p>
         </div>
 
         <Tabs defaultValue="stats" className="space-y-6">
@@ -25,10 +25,10 @@ export default function AdminPage() {
               Stats
             </TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">
-              Users
+              Customers
             </TabsTrigger>
             <TabsTrigger value="tools" data-testid="tab-tools">
-              Tools
+              Ai Blasts
             </TabsTrigger>
             <TabsTrigger value="subscriptions" data-testid="tab-subscriptions">
               Subscriptions

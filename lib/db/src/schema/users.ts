@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
   })
     .notNull()
     .default("inactive"),
+  validUntil: timestamp("valid_until", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

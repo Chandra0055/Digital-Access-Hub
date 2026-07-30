@@ -72,7 +72,7 @@ export default function ToolFormPage() {
         { id: toolId, data },
         {
           onSuccess: () => {
-            toast({ title: 'Tool updated' });
+            toast({ title: 'Ai Blast updated' });
             setLocation('/admin');
           },
           onError: (error: any) => {
@@ -85,7 +85,7 @@ export default function ToolFormPage() {
         { data },
         {
           onSuccess: () => {
-            toast({ title: 'Tool created' });
+            toast({ title: 'Ai Blast created' });
             setLocation('/admin');
           },
           onError: (error: any) => {
@@ -125,10 +125,10 @@ export default function ToolFormPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {isEdit ? 'Edit Tool' : 'Create Tool'}
+            {isEdit ? 'Edit Ai Blast' : 'Create Ai Blast'}
           </h1>
           <p className="text-muted-foreground">
-            {isEdit ? 'Update tool details' : 'Add a new tool to the portal'}
+            {isEdit ? 'Update Ai Blast details' : 'Add a new Ai Blast to the portal'}
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export default function ToolFormPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tool Name</FormLabel>
+                    <FormLabel>Ai Blast Name</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-name" placeholder="e.g., CloudSync Pro" />
                     </FormControl>
@@ -265,7 +265,7 @@ export default function ToolFormPage() {
 
               <div className="flex gap-3 pt-2">
                 <Button type="submit" disabled={isPending} data-testid="button-submit">
-                  {isPending ? 'Saving...' : isEdit ? 'Update Tool' : 'Create Tool'}
+                  {isPending ? 'Saving...' : isEdit ? 'Update Ai Blast' : 'Create Ai Blast'}
                 </Button>
                 <Button
                   type="button"
