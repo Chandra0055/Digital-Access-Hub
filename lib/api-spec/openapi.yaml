@@ -233,6 +233,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/tools/{id}/force-sync:
+    post:
+      operationId: adminForceSyncTool
+      tags: [admin]
+      summary: Manually trigger cookie sync for a tool (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForceSyncResult"
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "422":
+          description: Bot credentials not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ─── Subscriptions ────────────────────────────────────────────────────────
   /subscriptions/me:
     get:
@@ -635,6 +666,16 @@ components:
         hasAccess:
           type: boolean
           description: "True if this user has been granted access to this tool"
+        botLoginUrl:
+          type: ["string", "null"]
+          description: "Login URL for bot auto-sync"
+        botUsername:
+          type: ["string", "null"]
+          description: "Bot login username"
+        lastCookieSync:
+          type: ["string", "null"]
+          format: date-time
+          description: "When cookies were last auto-synced"
 
     ToolInput:
       type: object
@@ -656,6 +697,12 @@ components:
           type: string
         cookieData:
           type: string
+        botLoginUrl:
+          type: string
+        botUsername:
+          type: string
+        botPassword:
+          type: string
 
     ToolUpdate:
       type: object
@@ -676,6 +723,23 @@ components:
           type: string
         cookieData:
           type: string
+        botLoginUrl:
+          type: string
+        botUsername:
+          type: string
+        botPassword:
+          type: string
+
+    ForceSyncResult:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        cookieCount:
+          type: number
 
     # ─── Subscription schemas ─────────────────────────────────────────────────
     Subscription:

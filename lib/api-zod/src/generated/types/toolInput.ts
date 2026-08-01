@@ -16,4 +16,7 @@ export interface ToolInput {
   redirectUrl: string;
   iconUrl?: string;
   cookieData?: string;
+  botLoginUrl?: string;
+  botUsername?: string;
+  botPassword?: string;
 }

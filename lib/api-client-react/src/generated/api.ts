@@ -24,6 +24,7 @@ import type {
   ApiError,
   AuthResult,
   DashboardStats,
+  ForceSyncResult,
   HealthStatus,
   ListToolsParams,
   LoginInput,
@@ -808,6 +809,77 @@ export const useDeleteTool = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getDeleteToolMutationOptions(options));
+    }
+
+export const getAdminForceSyncToolUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tools/${id}/force-sync`
+}
+
+/**
+ * @summary Manually trigger cookie sync for a tool (admin only)
+ */
+export const adminForceSyncTool = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<ForceSyncResult> => {
+
+  return customFetch<ForceSyncResult>(getAdminForceSyncToolUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminForceSyncToolMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminForceSyncTool>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminForceSyncTool>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['adminForceSyncTool'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminForceSyncTool>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminForceSyncTool(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminForceSyncToolMutationResult = NonNullable<Awaited<ReturnType<typeof adminForceSyncTool>>>
+
+    export type AdminForceSyncToolMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Manually trigger cookie sync for a tool (admin only)
+ */
+export const useAdminForceSyncTool = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminForceSyncTool>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminForceSyncTool>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getAdminForceSyncToolMutationOptions(options));
     }
 
 export const getGetMySubscriptionUrl = () => {

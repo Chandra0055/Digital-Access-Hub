@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db, usersTable, toolsTable, subscriptionsTable, userToolAccessTable } from "@workspace/db";
 import { eq, count, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../lib/auth";
+import { syncToolCookies } from "../services/cookieSyncer.js";
 import { z } from "zod";
 
 const router: IRouter = Router();
@@ -268,6 +269,30 @@ router.get("/admin/subscriptions", requireAdmin, async (_req, res): Promise<void
     return { ...serializeSubscription(sub), user: user ? serializeUser(user) : undefined };
   });
 
+  res.json(result);
+});
+
+// ─── POST /admin/tools/:id/force-sync ────────────────────────────────────────
+
+const ToolIdParam = z.object({ id: z.coerce.number().int().positive() });
+
+router.post("/admin/tools/:id/force-sync", requireAdmin, async (req, res): Promise<void> => {
+  const params = ToolIdParam.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid tool id" }); return; }
+
+  const [tool] = await db
+    .select({ id: toolsTable.id, botLoginUrl: toolsTable.botLoginUrl })
+    .from(toolsTable)
+    .where(eq(toolsTable.id, params.data.id));
+
+  if (!tool) { res.status(404).json({ error: "Tool not found" }); return; }
+
+  if (!tool.botLoginUrl) {
+    res.status(422).json({ error: "Bot credentials not configured for this tool" });
+    return;
+  }
+
+  const result = await syncToolCookies(params.data.id);
   res.json(result);
 });
 

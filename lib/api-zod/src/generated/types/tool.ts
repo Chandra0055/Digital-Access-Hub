@@ -24,4 +24,19 @@ export interface Tool {
   createdAt: Date;
   /** True if this user has been granted access to this tool */
   hasAccess: boolean;
+  /**
+     * Login URL for bot auto-sync
+     * @nullable
+     */
+  botLoginUrl?: string | null;
+  /**
+     * Bot login username
+     * @nullable
+     */
+  botUsername?: string | null;
+  /**
+     * When cookies were last auto-synced
+     * @nullable
+     */
+  lastCookieSync?: Date | null;
 }

@@ -1,0 +1,31 @@
+Build a Server-Side Puppeteer Stealth Auto-Sync System for the Kenter Tech Portal.
+
+Please implement the following updates:
+
+1. Install Dependencies:
+   - Install `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`, and `node-cron`.
+
+2. Database Schema Updates:
+   - Update the Tools table to include fields for automation: `bot_login_url` (Text), `bot_username` (Text), `bot_password` (Text), and `last_cookie_sync` (DateTime). 
+   - Note: Please ensure passwords are encrypted before saving, or configure the system to read them from environment variables.
+
+3. Puppeteer Automation Service (Create a new file: `services/cookieSyncer.js`):
+   - Set up `puppeteer-extra` with the `StealthPlugin` to bypass basic bot detection.
+   - Create a function `syncToolCookies(toolId)` that:
+     a) Launches a headless browser instance with standard stealth arguments (e.g., no-sandbox).
+     b) Retrieves the tool's login URL, username, and password from the database.
+     c) Navigates to the login page, inputs the credentials, and submits the form.
+     d) Waits for network idle or successful login navigation.
+     e) Extracts the session cookies using `page.cookies()`.
+     f) Closes the browser.
+     g) Updates the `cookie_data` and `last_cookie_sync` fields for that tool in the database.
+   - Include basic error handling (try/catch) to log if the login fails due to CAPTCHA or timeouts.
+
+4. Cron Job Integration:
+   - In the main Express server file (e.g., `index.js` or `server.js`), import `node-cron`.
+   - Create a cron job `cron.schedule('0 */6 * * *', ...)` that runs every 6 hours.
+   - Inside the cron job, fetch all active tools from the database and run `syncToolCookies(tool)` in sequence (one by one to avoid overloading the server memory).
+
+5. Admin Manual Trigger:
+   - Create an Express API endpoint `POST /api/admin/tools/:id/force-sync`.
+   - Add a "Force Sync Cookies" button in the Admin Panel Tool Edit page that calls this endpoint, allowing me to manually test the Puppeteer script and see if it successfully logs in.

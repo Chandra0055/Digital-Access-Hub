@@ -104,7 +104,10 @@ export const ListToolsResponseItem = zod.object({
   "iconUrl": zod.string().nullish(),
   "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
   "createdAt": zod.coerce.date(),
-  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool'),
+  "botLoginUrl": zod.string().nullish().describe('Login URL for bot auto-sync'),
+  "botUsername": zod.string().nullish().describe('Bot login username'),
+  "lastCookieSync": zod.coerce.date().nullish().describe('When cookies were last auto-synced')
 })
 export const ListToolsResponse = zod.array(ListToolsResponseItem)
 
@@ -122,7 +125,10 @@ export const CreateToolBody = zod.object({
   "category": zod.string(),
   "redirectUrl": zod.string(),
   "iconUrl": zod.string().optional(),
-  "cookieData": zod.string().optional()
+  "cookieData": zod.string().optional(),
+  "botLoginUrl": zod.string().optional(),
+  "botUsername": zod.string().optional(),
+  "botPassword": zod.string().optional()
 })
 
 export const CreateToolResponse = zod.object({
@@ -135,7 +141,10 @@ export const CreateToolResponse = zod.object({
   "iconUrl": zod.string().nullish(),
   "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
   "createdAt": zod.coerce.date(),
-  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool'),
+  "botLoginUrl": zod.string().nullish().describe('Login URL for bot auto-sync'),
+  "botUsername": zod.string().nullish().describe('Bot login username'),
+  "lastCookieSync": zod.coerce.date().nullish().describe('When cookies were last auto-synced')
 })
 
 
@@ -156,7 +165,10 @@ export const GetToolResponse = zod.object({
   "iconUrl": zod.string().nullish(),
   "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
   "createdAt": zod.coerce.date(),
-  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool'),
+  "botLoginUrl": zod.string().nullish().describe('Login URL for bot auto-sync'),
+  "botUsername": zod.string().nullish().describe('Bot login username'),
+  "lastCookieSync": zod.coerce.date().nullish().describe('When cookies were last auto-synced')
 })
 
 
@@ -177,7 +189,10 @@ export const UpdateToolBody = zod.object({
   "category": zod.string().optional(),
   "redirectUrl": zod.string().optional(),
   "iconUrl": zod.string().optional(),
-  "cookieData": zod.string().optional()
+  "cookieData": zod.string().optional(),
+  "botLoginUrl": zod.string().optional(),
+  "botUsername": zod.string().optional(),
+  "botPassword": zod.string().optional()
 })
 
 export const UpdateToolResponse = zod.object({
@@ -190,7 +205,10 @@ export const UpdateToolResponse = zod.object({
   "iconUrl": zod.string().nullish(),
   "cookieData": zod.string().nullish().describe('Session cookie data — only returned when user has access'),
   "createdAt": zod.coerce.date(),
-  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool')
+  "hasAccess": zod.boolean().describe('True if this user has been granted access to this tool'),
+  "botLoginUrl": zod.string().nullish().describe('Login URL for bot auto-sync'),
+  "botUsername": zod.string().nullish().describe('Bot login username'),
+  "lastCookieSync": zod.coerce.date().nullish().describe('When cookies were last auto-synced')
 })
 
 
@@ -202,6 +220,20 @@ export const DeleteToolParams = zod.object({
 })
 
 export const DeleteToolResponse = zod.void()
+
+
+/**
+ * @summary Manually trigger cookie sync for a tool (admin only)
+ */
+export const AdminForceSyncToolParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AdminForceSyncToolResponse = zod.object({
+  "success": zod.boolean(),
+  "message": zod.string(),
+  "cookieCount": zod.number().optional()
+})
 
 
 /**

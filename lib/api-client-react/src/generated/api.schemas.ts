@@ -203,6 +203,21 @@ export interface Tool {
   createdAt: string;
   /** True if this user has been granted access to this tool */
   hasAccess: boolean;
+  /**
+     * Login URL for bot auto-sync
+     * @nullable
+     */
+  botLoginUrl?: string | null;
+  /**
+     * Bot login username
+     * @nullable
+     */
+  botUsername?: string | null;
+  /**
+     * When cookies were last auto-synced
+     * @nullable
+     */
+  lastCookieSync?: string | null;
 }
 
 export type ToolInputStatus = typeof ToolInputStatus[keyof typeof ToolInputStatus];
@@ -223,6 +238,9 @@ export interface ToolInput {
   redirectUrl: string;
   iconUrl?: string;
   cookieData?: string;
+  botLoginUrl?: string;
+  botUsername?: string;
+  botPassword?: string;
 }
 
 export type ToolUpdateStatus = typeof ToolUpdateStatus[keyof typeof ToolUpdateStatus];
@@ -243,6 +261,15 @@ export interface ToolUpdate {
   redirectUrl?: string;
   iconUrl?: string;
   cookieData?: string;
+  botLoginUrl?: string;
+  botUsername?: string;
+  botPassword?: string;
+}
+
+export interface ForceSyncResult {
+  success: boolean;
+  message: string;
+  cookieCount?: number;
 }
 
 export type SubscriptionWithUserStatus = typeof SubscriptionWithUserStatus[keyof typeof SubscriptionWithUserStatus];

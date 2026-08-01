@@ -13,6 +13,7 @@ export * from './authResult';
 export * from './dashboardStats';
 export * from './dashboardStatsSubscriptionsByPlanItem';
 export * from './dashboardStatsToolsByCategoryItem';
+export * from './forceSyncResult';
 export * from './healthStatus';
 export * from './listToolsParams';
 export * from './loginInput';
