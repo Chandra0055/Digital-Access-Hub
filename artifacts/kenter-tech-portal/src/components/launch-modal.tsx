@@ -87,7 +87,7 @@ export function LaunchModal({ open, onClose, toolName }: LaunchModalProps) {
           </div>
 
           {/* Download */}
-          <a href={zipFile} download={`kenter-extension-${isFirefox ? 'firefox' : 'chrome'}.zip`} className="block">
+          <a href={zipFile} download={`ai-blast-extension-${isFirefox ? 'firefox' : 'chrome'}.zip`} className="block">
             <Button className="w-full" size="lg" data-testid="button-download-extension">
               <Download className="w-4 h-4 mr-2" />
               Download for {info.label}

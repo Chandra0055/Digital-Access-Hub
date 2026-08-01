@@ -249,7 +249,7 @@ export default function ToolsPage() {
             ) : (
               <a
                 href="/kenter-extension.zip"
-                download="kenter-extension.zip"
+                download="ai-blast-extension.zip"
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors border border-border rounded-full px-3 py-1.5"
               >
                 <PuzzleIcon className="w-3.5 h-3.5" />
