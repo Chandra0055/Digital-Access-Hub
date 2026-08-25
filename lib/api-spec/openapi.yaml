@@ -559,6 +559,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        createdByAdmin:
+          type: boolean
+        accessGrantedByAdmin:
+          type: boolean
 
     UserWithSubscription:
       type: object
@@ -587,6 +591,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        createdByAdmin:
+          type: boolean
+        accessGrantedByAdmin:
+          type: boolean
         subscription:
           $ref: "#/components/schemas/Subscription"
 

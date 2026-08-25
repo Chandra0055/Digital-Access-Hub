@@ -115,6 +115,8 @@ router.post("/admin/users", requireAdmin, async (req, res): Promise<void> => {
       passwordHash,
       role,
       subscriptionStatus: "active",
+      createdByAdmin: true,
+      accessGrantedByAdmin: true,
       ...(validUntil ? { validUntil } : {}),
     })
     .returning();
@@ -217,6 +219,11 @@ router.put("/admin/users/:id/tools", requireAdmin, async (req, res): Promise<voi
       toolIds.map((toolId) => ({ userId: params.data.id, toolId })),
     );
   }
+
+  await db
+    .update(usersTable)
+    .set({ accessGrantedByAdmin: true })
+    .where(eq(usersTable.id, params.data.id));
 
   res.json({ toolIds });
 });

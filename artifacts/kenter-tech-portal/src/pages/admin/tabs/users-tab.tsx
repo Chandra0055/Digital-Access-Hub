@@ -37,7 +37,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { format, isPast, isWithinInterval, addDays } from 'date-fns';
-import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash, ShieldOff, Clock, CalendarX, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash, ShieldOff, Clock, CalendarX, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Validity preset helper ─────────────────────────────────────────────────
@@ -470,6 +470,7 @@ export function UsersTab() {
   const [deletingUser, setDeletingUser] = useState<UserWithSubscription | null>(null);
   const [revokingUser, setRevokingUser] = useState<UserWithSubscription | null>(null);
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('all');
+  const [search, setSearch] = useState('');
 
   const { data: users, isLoading } = useAdminListUsers({
     query: { queryKey: getAdminListUsersQueryKey() },
@@ -564,6 +565,13 @@ export function UsersTab() {
     } else if (expiryFilter === 'expired') {
       list = list.filter((u) => getExpiryBucket(u.validUntil) === 'expired');
     }
+    const query = search.trim().toLowerCase();
+    if (query) {
+      list = list.filter((u) =>
+        u.name.toLowerCase().includes(query) ||
+        u.email.toLowerCase().includes(query)
+      );
+    }
     // Sort by expiry ascending for filtered views so soonest is first
     if (expiryFilter !== 'all') {
       list = [...list].sort((a, b) => {
@@ -632,6 +640,16 @@ export function UsersTab() {
           Create Customer
         </Button>
       </div>
+      <div className="relative mb-4 max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search customers by name or email..."
+          className="pl-9"
+          aria-label="Search customers"
+        />
+      </div>
 
       <div className="border border-border bg-card rounded">
         <Table>
@@ -654,6 +672,8 @@ export function UsersTab() {
                     ? 'No customers expiring in the next 30 days.'
                     : expiryFilter === 'expired'
                     ? 'No expired customers.'
+                    : search.trim()
+                    ? 'No customers match your search.'
                     : 'No customers yet.'}
                 </TableCell>
               </TableRow>
@@ -674,7 +694,19 @@ export function UsersTab() {
                   <TableCell>
                     <div>
                       <p className="font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{user.email}</p>
+                       <div className="flex items-center gap-2 flex-wrap">
+                         <p className="text-xs text-muted-foreground font-mono">{user.email}</p>
+                         {user.createdByAdmin && (
+                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-primary border-primary/30">
+                             Admin added
+                           </Badge>
+                         )}
+                         {user.accessGrantedByAdmin && (
+                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-700 border-green-300">
+                             Access given
+                           </Badge>
+                         )}
+                       </div>
                     </div>
                   </TableCell>
                   <TableCell>

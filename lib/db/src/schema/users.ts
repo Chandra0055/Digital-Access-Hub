@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -8,6 +8,8 @@ export const usersTable = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   activeSessionId: text("active_session_id"),
+  createdByAdmin: boolean("created_by_admin").notNull().default(false),
+  accessGrantedByAdmin: boolean("access_granted_by_admin").notNull().default(false),
   role: text("role", { enum: ["admin", "subscriber"] }).notNull().default("subscriber"),
   subscriptionStatus: text("subscription_status", {
     enum: ["active", "inactive", "trial", "expired"],
