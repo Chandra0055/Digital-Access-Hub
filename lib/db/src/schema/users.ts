@@ -7,6 +7,7 @@ export const usersTable = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  activeSessionId: text("active_session_id"),
   role: text("role", { enum: ["admin", "subscriber"] }).notNull().default("subscriber"),
   subscriptionStatus: text("subscription_status", {
     enum: ["active", "inactive", "trial", "expired"],

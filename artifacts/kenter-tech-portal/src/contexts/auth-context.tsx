@@ -19,13 +19,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useGetMe({
+  const { data: user, isLoading, error } = useGetMe({
     query: {
       enabled: !!token,
       queryKey: getGetMeQueryKey(),
       retry: false,
+      refetchInterval: token ? 15000 : false,
+      refetchIntervalInBackground: true,
     },
   });
+
+  useEffect(() => {
+    if (!token || !error) return;
+    const status = (error as any)?.response?.status;
+    if (status === 401) {
+      localStorage.removeItem('kenter_token');
+      setToken(null);
+      queryClient.clear();
+    }
+  }, [error, token, queryClient]);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('kenter_token', newToken);

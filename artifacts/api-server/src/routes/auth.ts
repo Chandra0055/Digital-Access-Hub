@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { signToken, requireAuth } from "../lib/auth";
+import { signToken, requireAuth, createSessionId } from "../lib/auth";
 import { SignupBody, LoginBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -44,8 +44,14 @@ router.post("/auth/signup", async (req, res): Promise<void> => {
     .values({ name, email, passwordHash, role: "subscriber", subscriptionStatus: "inactive" })
     .returning();
 
-  const token = signToken({ userId: user.id, role: user.role });
-  res.status(201).json({ token, user: serializeUser(user) });
+  const sessionId = createSessionId();
+  const [sessionUser] = await db
+    .update(usersTable)
+    .set({ activeSessionId: sessionId })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  const token = signToken({ userId: user.id, role: user.role, sessionId });
+  res.status(201).json({ token, user: serializeUser(sessionUser ?? user) });
 });
 
 // POST /auth/login
@@ -73,8 +79,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  const token = signToken({ userId: user.id, role: user.role });
-  res.json({ token, user: serializeUser(user) });
+  const sessionId = createSessionId();
+  const [sessionUser] = await db
+    .update(usersTable)
+    .set({ activeSessionId: sessionId })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+  const token = signToken({ userId: user.id, role: user.role, sessionId });
+  res.json({ token, user: serializeUser(sessionUser ?? user) });
 });
 
 // POST /auth/logout

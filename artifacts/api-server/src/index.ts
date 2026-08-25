@@ -1,7 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import cron from "node-cron";
-import { db, toolsTable } from "@workspace/db";
+import { db, pool, toolsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { syncToolCookies } from "./services/cookieSyncer.js";
 
@@ -19,7 +19,12 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+async function start() {
+  // Keep this additive migration safe for existing installations. The
+  // project currently applies schema changes at server startup.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_session_id TEXT`);
+
+  app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -46,4 +51,10 @@ app.listen(port, (err) => {
 
     logger.info("Scheduled cookie sync complete");
   });
+  });
+}
+
+start().catch((err) => {
+  logger.error({ err }, "Failed to initialize database schema");
+  process.exit(1);
 });

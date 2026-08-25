@@ -87,7 +87,9 @@ export async function syncToolCookies(toolId: number): Promise<SyncResult> {
     // Generic login strategy: find username/email field, password field, submit
     await page.evaluate(
       async (username: string, password: string) => {
-        const inputs = Array.from(document.querySelectorAll("input"));
+        const inputs = Array.from(
+          (document as any).querySelectorAll("input"),
+        ) as any[];
 
         const usernameInput = inputs.find(
           (el) =>
@@ -114,7 +116,7 @@ export async function syncToolCookies(toolId: number): Promise<SyncResult> {
           passwordInput.dispatchEvent(new Event("change", { bubbles: true }));
         }
 
-        const submitBtn = document.querySelector<HTMLElement>(
+        const submitBtn = (document as any).querySelector(
           "button[type='submit'], input[type='submit']",
         );
         if (submitBtn) submitBtn.click();
@@ -133,7 +135,7 @@ export async function syncToolCookies(toolId: number): Promise<SyncResult> {
 
     const cookies = await page.cookies();
     const cookieJson = JSON.stringify(
-      cookies.map((c) => ({
+      cookies.map((c: any) => ({
         name: c.name,
         value: c.value,
         domain: c.domain,

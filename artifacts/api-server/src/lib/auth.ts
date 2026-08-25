@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -26,12 +27,16 @@ async function autoExpireIfNeeded(user: typeof usersTable.$inferSelect): Promise
 
 const JWT_SECRET = process.env.SESSION_SECRET ?? "kenter-secret-dev";
 
-export function signToken(payload: { userId: number; role: string }): string {
+export function signToken(payload: { userId: number; role: string; sessionId?: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
 }
 
-export function verifyToken(token: string): { userId: number; role: string } {
-  return jwt.verify(token, JWT_SECRET) as { userId: number; role: string };
+export function verifyToken(token: string): { userId: number; role: string; sessionId?: string } {
+  return jwt.verify(token, JWT_SECRET) as { userId: number; role: string; sessionId?: string };
+}
+
+export function createSessionId(): string {
+  return randomUUID();
 }
 
 export async function requireAuth(
@@ -53,6 +58,15 @@ export async function requireAuth(
       .where(eq(usersTable.id, payload.userId));
     if (!rawUser) {
       res.status(401).json({ error: "User not found" });
+      return;
+    }
+    // Subscribers may use only the most recently issued session. Admins are
+    // intentionally exempt so administrators can work from multiple devices.
+    if (
+      rawUser.role !== "admin" &&
+      (!payload.sessionId || !rawUser.activeSessionId || payload.sessionId !== rawUser.activeSessionId)
+    ) {
+      res.status(401).json({ error: "This account was signed in on another device." });
       return;
     }
     req.user = await autoExpireIfNeeded(rawUser);
