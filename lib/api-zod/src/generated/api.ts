@@ -39,7 +39,9 @@ export const SignupResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 })
 })
 
@@ -61,7 +63,9 @@ export const LoginResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 })
 })
 
@@ -82,7 +86,9 @@ export const GetMeResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 })
 
 
@@ -301,6 +307,8 @@ export const AdminListUsersResponseItem = zod.object({
   "validUntil": zod.coerce.date().nullish(),
   "toolIds": zod.array(zod.number()).describe('IDs of Ai Blasts this user can access (empty = all)'),
   "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional(),
   "subscription": zod.object({
   "id": zod.number(),
   "userId": zod.number(),
@@ -337,7 +345,9 @@ export const AdminCreateUserResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 })
 
 
@@ -361,7 +371,9 @@ export const AdminUpdateUserResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 })
 
 
@@ -425,7 +437,9 @@ export const AdminGetStatsResponse = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 }))
 })
 
@@ -447,7 +461,9 @@ export const AdminListSubscriptionsResponseItem = zod.object({
   "role": zod.enum(['admin', 'subscriber']),
   "subscriptionStatus": zod.enum(['active', 'inactive', 'trial', 'expired']),
   "validUntil": zod.coerce.date().nullish().describe('When null, access never expires'),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "createdByAdmin": zod.boolean().optional(),
+  "accessGrantedByAdmin": zod.boolean().optional()
 }).optional()
 })
 export const AdminListSubscriptionsResponse = zod.array(AdminListSubscriptionsResponseItem)

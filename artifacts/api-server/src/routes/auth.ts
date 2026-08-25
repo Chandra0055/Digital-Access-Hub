@@ -15,6 +15,8 @@ export function serializeUser(user: typeof usersTable.$inferSelect) {
     role: user.role,
     subscriptionStatus: user.subscriptionStatus,
     validUntil: user.validUntil ?? null,
+    createdByAdmin: user.createdByAdmin,
+    accessGrantedByAdmin: user.accessGrantedByAdmin,
     createdAt: user.createdAt,
   };
 }

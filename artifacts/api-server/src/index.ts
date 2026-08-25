@@ -22,7 +22,12 @@ if (Number.isNaN(port) || port <= 0) {
 async function start() {
   // Keep this additive migration safe for existing installations. The
   // project currently applies schema changes at server startup.
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS active_session_id TEXT`);
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS active_session_id TEXT,
+      ADD COLUMN IF NOT EXISTS created_by_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS access_granted_by_admin BOOLEAN NOT NULL DEFAULT FALSE
+  `);
 
   app.listen(port, (err) => {
   if (err) {

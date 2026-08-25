@@ -20,5 +20,7 @@ export interface UserWithSubscription {
   /** IDs of Ai Blasts this user can access (empty = all) */
   toolIds: number[];
   createdAt: Date;
+  createdByAdmin?: boolean;
+  accessGrantedByAdmin?: boolean;
   subscription?: Subscription;
 }

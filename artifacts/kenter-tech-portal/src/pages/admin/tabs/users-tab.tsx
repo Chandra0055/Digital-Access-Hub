@@ -253,7 +253,16 @@ function CreateUserDialog({
     const accessDays = getAccessDays(validityMode, preset, customDays, exactDate);
 
     createMutation.mutate(
-      { data: { name, email, password, role, accessDays, toolIds } },
+      {
+        data: {
+          name,
+          email,
+          password,
+          role,
+          toolIds,
+          ...(accessDays === null || accessDays === undefined ? {} : { accessDays }),
+        },
+      },
       {
         onSuccess: async (newUser) => {
           if (toolIds.length > 0) {
@@ -577,7 +586,7 @@ export function UsersTab() {
       list = [...list].sort((a, b) => {
         const ta = a.validUntil ? new Date(a.validUntil).getTime() : Infinity;
         const tb = b.validUntil ? new Date(b.validUntil).getTime() : Infinity;
-        return ta - tb;
+        return Number(ta) - Number(tb);
       });
     }
     return list;

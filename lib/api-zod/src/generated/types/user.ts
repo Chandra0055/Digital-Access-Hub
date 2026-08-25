@@ -20,4 +20,6 @@ export interface User {
      */
   validUntil?: Date | null;
   createdAt: Date;
+  createdByAdmin?: boolean;
+  accessGrantedByAdmin?: boolean;
 }

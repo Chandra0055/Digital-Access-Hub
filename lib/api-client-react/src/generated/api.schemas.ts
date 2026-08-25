@@ -56,6 +56,8 @@ export interface User {
      */
   validUntil?: string | null;
   createdAt: string;
+  createdByAdmin?: boolean;
+  accessGrantedByAdmin?: boolean;
 }
 
 export interface AuthResult {
@@ -121,6 +123,8 @@ export interface UserWithSubscription {
   /** IDs of Ai Blasts this user can access (empty = all) */
   toolIds: number[];
   createdAt: string;
+  createdByAdmin?: boolean;
+  accessGrantedByAdmin?: boolean;
   subscription?: Subscription;
 }
 
