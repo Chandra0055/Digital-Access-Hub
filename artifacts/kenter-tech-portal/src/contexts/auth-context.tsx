@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!token || !error) return;
-    const status = (error as any)?.response?.status;
+    const status = (error as any)?.status ?? (error as any)?.response?.status;
     if (status === 401) {
       localStorage.removeItem('kenter_token');
       setToken(null);
