@@ -36,13 +36,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
-import { format, isPast } from 'date-fns';
-import { Plus, Trash2, Settings2, Calendar, CalendarDays, Hash, ShieldOff } from 'lucide-react';
+import { format, isPast, isWithinInterval, addDays } from 'date-fns';
+import { Plus, Trash2, Settings2, Calendar, Infinity, CalendarDays, Hash, ShieldOff, Clock, CalendarX, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 // ─── Validity preset helper ─────────────────────────────────────────────────
 
-type ValidityPreset = '0' | '1' | '7' | '25' | '90' | 'custom';
+type ValidityPreset = '0' | '1' | '7' | '25' | '90' | 'unlimited' | 'custom';
 
 const PRESET_LABELS: Record<ValidityPreset, string> = {
   '0': '0 Days',
@@ -50,6 +50,7 @@ const PRESET_LABELS: Record<ValidityPreset, string> = {
   '7': '7 Days',
   '25': '25 Days',
   '90': '90 Days',
+  'unlimited': 'Unlimited',
   'custom': 'Custom',
 };
 
@@ -154,12 +155,13 @@ function ValidityPicker({
   );
 }
 
-function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | undefined {
+function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | null | undefined {
   if (mode === 'date') {
     if (!exactDate) return undefined;
     const days = Math.ceil((new Date(exactDate).getTime() - Date.now()) / 86_400_000);
-    return days > 0 ? days : 0;
+    return days > 0 ? days : 1;
   }
+  if (preset === 'unlimited') return undefined;
   if (preset === 'custom') return customDays ? parseInt(customDays, 10) : undefined;
   return parseInt(preset, 10);
 }
@@ -362,7 +364,13 @@ function ManageUserDialog({
 
   const handleSave = async () => {
     const accessDays = getAccessDays(validityMode, preset, customDays, exactDate);
-    const accessDaysPayload = accessDays !== undefined ? { accessDays } : {};
+    // Clear expiry if unlimited is selected in days mode.
+    const accessDaysPayload =
+      validityMode === 'days' && preset === 'unlimited' && user.validUntil
+        ? { accessDays: null }
+        : accessDays !== undefined
+        ? { accessDays }
+        : {};
 
     try {
       await updateMutation.mutateAsync({
@@ -416,6 +424,7 @@ function ManageUserDialog({
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="trial">Trial</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
@@ -454,13 +463,13 @@ function ManageUserDialog({
   );
 }
 
-// ─── Main tab ─────────────────────────────────────────────────────────────────
-
+type ExpiryFilter = 'all' | 'expiring' | 'expired';
 export function UsersTab() {
   const [createOpen, setCreateOpen] = useState(false);
   const [managingUser, setManagingUser] = useState<UserWithSubscription | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserWithSubscription | null>(null);
   const [revokingUser, setRevokingUser] = useState<UserWithSubscription | null>(null);
+  const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('all');
 
   const { data: users, isLoading } = useAdminListUsers({
     query: { queryKey: getAdminListUsersQueryKey() },
@@ -470,11 +479,36 @@ export function UsersTab() {
   });
   const deleteUserMutation = useAdminDeleteUser();
   const revokeUserMutation = useAdminUpdateUser();
+  const extendMutation = useAdminUpdateUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const allToolIds = tools?.map((t) => t.id) ?? [];
   const allToolNames = new Map(tools?.map((t) => [t.id, t.name]) ?? []);
+
+  const handleExtend = (user: UserWithSubscription) => {
+    // accessDays is always "days from now" on the API side.
+    // For a future expiry we want (remaining days + 30); for expired/no expiry just 30.
+    const now = Date.now();
+    const currentExpiry = user.validUntil ? new Date(user.validUntil).getTime() : null;
+    const remainingDays = currentExpiry && currentExpiry > now
+      ? Math.ceil((currentExpiry - now) / 86_400_000)
+      : 0;
+    const accessDays = remainingDays + 30;
+
+    extendMutation.mutate(
+      { id: user.id, data: { accessDays } },
+      {
+        onSuccess: () => {
+          toast({ title: 'Subscription extended', description: `${user.name} extended by 30 days.` });
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey() });
+        },
+        onError: (err: any) => {
+          toast({ title: 'Extension failed', description: err.message, variant: 'destructive' });
+        },
+      }
+    );
+  };
 
   const handleRevoke = () => {
     if (!revokingUser) return;
@@ -518,10 +552,81 @@ export function UsersTab() {
     );
   }
 
+  // ── Compute counts for filter badges ──────────────────────────────────────
+  const expiringCount = users?.filter((u) => getExpiryBucket(u.validUntil) === 'expiring').length ?? 0;
+  const expiredCount  = users?.filter((u) => getExpiryBucket(u.validUntil) === 'expired').length ?? 0;
+
+  // ── Filter + sort ──────────────────────────────────────────────────────────
+  const filteredUsers = (() => {
+    let list = users ?? [];
+    if (expiryFilter === 'expiring') {
+      list = list.filter((u) => getExpiryBucket(u.validUntil) === 'expiring');
+    } else if (expiryFilter === 'expired') {
+      list = list.filter((u) => getExpiryBucket(u.validUntil) === 'expired');
+    }
+    // Sort by expiry ascending for filtered views so soonest is first
+    if (expiryFilter !== 'all') {
+      list = [...list].sort((a, b) => {
+        const ta = a.validUntil ? new Date(a.validUntil).getTime() : Infinity;
+        const tb = b.validUntil ? new Date(b.validUntil).getTime() : Infinity;
+        return ta - tb;
+      });
+    }
+    return list;
+  })();
+
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">{users?.length ?? 0} customer(s)</p>
+      {/* ── Filter tabs ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <div className="flex items-center gap-1 rounded-lg border border-border p-1 bg-muted/40">
+          <button
+            type="button"
+            onClick={() => setExpiryFilter('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              expiryFilter === 'all'
+                ? 'bg-background shadow-sm text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            All
+            <span className="ml-0.5 text-xs text-muted-foreground">({users?.length ?? 0})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setExpiryFilter('expiring')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              expiryFilter === 'expiring'
+                ? 'bg-background shadow-sm text-amber-700'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="w-3 h-3" />
+            Expiring in 30 days
+            {expiringCount > 0 && (
+              <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                expiryFilter === 'expiring' ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-600'
+              }`}>{expiringCount}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setExpiryFilter('expired')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              expiryFilter === 'expired'
+                ? 'bg-background shadow-sm text-red-700'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CalendarX className="w-3 h-3" />
+            Already expired
+            {expiredCount > 0 && (
+              <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                expiryFilter === 'expired' ? 'bg-red-100 text-red-700' : 'bg-red-100 text-red-600'
+              }`}>{expiredCount}</span>
+            )}
+          </button>
+        </div>
         <Button onClick={() => setCreateOpen(true)} size="sm">
           <Plus className="w-4 h-4 mr-1.5" />
           Create Customer
@@ -542,13 +647,30 @@ export function UsersTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users?.map((user) => {
+            {filteredUsers.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                  {expiryFilter === 'expiring'
+                    ? 'No customers expiring in the next 30 days.'
+                    : expiryFilter === 'expired'
+                    ? 'No expired customers.'
+                    : 'No customers yet.'}
+                </TableCell>
+              </TableRow>
+            )}
+            {filteredUsers.map((user) => {
               const expiry = user.validUntil ? new Date(user.validUntil) : null;
-              const expired = expiry ? isPast(expiry) : false;
+              const bucket = getExpiryBucket(user.validUntil);
+              const expired = bucket === 'expired';
+              const expiringSoon = bucket === 'expiring';
               const toolCount = user.toolIds?.length ?? 0;
 
               return (
-                <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                <TableRow
+                  key={user.id}
+                  data-testid={`row-user-${user.id}`}
+                  className={expiringSoon ? 'bg-amber-50/40' : expired ? 'bg-red-50/30' : undefined}
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium">{user.name}</p>
@@ -562,11 +684,13 @@ export function UsersTab() {
                   </TableCell>
                   <TableCell>
                     {expiry ? (
-                      <span className={`text-sm font-mono ${expired ? 'text-red-500' : 'text-foreground'}`}>
-                        {expired ? '⚠ ' : ''}{format(expiry, 'MMM d, yyyy')}
+                      <span className={`text-sm font-mono ${expired ? 'text-red-500' : expiringSoon ? 'text-amber-600' : 'text-foreground'}`}>
+                        {expired ? '⚠ ' : expiringSoon ? '⏰ ' : ''}{format(expiry, 'MMM d, yyyy')}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
+                      <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                        <Infinity className="w-3.5 h-3.5" /> Unlimited
+                      </span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -576,6 +700,19 @@ export function UsersTab() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {(expiringSoon || expired) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800"
+                          onClick={() => handleExtend(user)}
+                          disabled={extendMutation.isPending}
+                          data-testid={`button-extend-${user.id}`}
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                          +30 days
+                        </Button>
+                      )}
                       {(user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trial') && (
                         <Button
                           size="sm"
@@ -676,4 +813,13 @@ export function UsersTab() {
       </AlertDialog>
     </>
   );
+}
+
+function getExpiryBucket(validUntil: string | null | undefined): 'expired' | 'expiring' | 'ok' | 'unlimited' {
+  if (!validUntil) return 'unlimited';
+  const expiry = new Date(validUntil);
+  const now = new Date();
+  if (isPast(expiry)) return 'expired';
+  if (isWithinInterval(expiry, { start: now, end: addDays(now, 30) })) return 'expiring';
+  return 'ok';
 }
