@@ -155,7 +155,7 @@ function ValidityPicker({
   );
 }
 
-function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | null | undefined {
+function getAccessDays(mode: ValidityMode, preset: ValidityPreset, customDays: string, exactDate: string): number | undefined {
   if (mode === 'date') {
     if (!exactDate) return undefined;
     const days = Math.ceil((new Date(exactDate).getTime() - Date.now()) / 86_400_000);
@@ -472,6 +472,7 @@ function ManageUserDialog({
   );
 }
 
+const EXPIRING_SOON_DAYS = 7;
 type ExpiryFilter = 'all' | 'expiring' | 'expired';
 export function UsersTab() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -584,9 +585,9 @@ export function UsersTab() {
     // Sort by expiry ascending for filtered views so soonest is first
     if (expiryFilter !== 'all') {
       list = [...list].sort((a, b) => {
-        const ta = a.validUntil ? new Date(a.validUntil).getTime() : Infinity;
-        const tb = b.validUntil ? new Date(b.validUntil).getTime() : Infinity;
-        return Number(ta) - Number(tb);
+        const ta = a.validUntil ? new Date(a.validUntil).getTime() : Number.POSITIVE_INFINITY;
+        const tb = b.validUntil ? new Date(b.validUntil).getTime() : Number.POSITIVE_INFINITY;
+        return ta - tb;
       });
     }
     return list;
@@ -619,7 +620,7 @@ export function UsersTab() {
             }`}
           >
             <Clock className="w-3 h-3" />
-            Expiring in 30 days
+            Expiring soon
             {expiringCount > 0 && (
               <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                 expiryFilter === 'expiring' ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-600'
@@ -678,7 +679,7 @@ export function UsersTab() {
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
                   {expiryFilter === 'expiring'
-                    ? 'No customers expiring in the next 30 days.'
+                    ? 'No customers expiring in the next 7 days.'
                     : expiryFilter === 'expired'
                     ? 'No expired customers.'
                     : search.trim()
@@ -725,9 +726,21 @@ export function UsersTab() {
                   </TableCell>
                   <TableCell>
                     {expiry ? (
-                      <span className={`text-sm font-mono ${expired ? 'text-red-500' : expiringSoon ? 'text-amber-600' : 'text-foreground'}`}>
-                        {expired ? '⚠ ' : expiringSoon ? '⏰ ' : ''}{format(expiry, 'MMM d, yyyy')}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-sm font-mono ${expired ? 'text-red-500' : expiringSoon ? 'text-amber-600' : 'text-foreground'}`}>
+                          {expired ? '⚠ ' : ''}{format(expiry, 'MMM d, yyyy')}
+                        </span>
+                        {expiringSoon && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-300 bg-amber-100 text-amber-700 hover:bg-amber-100"
+                            data-testid={`badge-expiring-${user.id}`}
+                          >
+                            <Clock className="mr-1 h-3 w-3" />
+                            Expiring soon
+                          </Badge>
+                        )}
+                      </div>
                     ) : (
                       <span className="flex items-center gap-1 text-muted-foreground text-sm">
                         <Infinity className="w-3.5 h-3.5" /> Unlimited
@@ -861,6 +874,6 @@ function getExpiryBucket(validUntil: string | null | undefined): 'expired' | 'ex
   const expiry = new Date(validUntil);
   const now = new Date();
   if (isPast(expiry)) return 'expired';
-  if (isWithinInterval(expiry, { start: now, end: addDays(now, 30) })) return 'expiring';
+  if (isWithinInterval(expiry, { start: now, end: addDays(now, EXPIRING_SOON_DAYS) })) return 'expiring';
   return 'ok';
 }
