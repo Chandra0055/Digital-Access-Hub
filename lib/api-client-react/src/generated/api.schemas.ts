@@ -276,6 +276,12 @@ export interface ForceSyncResult {
   cookieCount?: number;
 }
 
+export interface UpdateToolCookiesInput {
+  toolId: number;
+  cookieData: string;
+  timestamp?: string;
+}
+
 export type SubscriptionWithUserStatus = typeof SubscriptionWithUserStatus[keyof typeof SubscriptionWithUserStatus];
 
 
@@ -367,5 +373,9 @@ export interface DashboardStats {
 export type ListToolsParams = {
 category?: string;
 status?: string;
+};
+
+export type AdminUpdateToolCookies200 = {
+  success: boolean;
 };
 

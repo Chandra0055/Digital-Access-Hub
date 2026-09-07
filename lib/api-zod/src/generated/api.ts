@@ -243,6 +243,20 @@ export const AdminForceSyncToolResponse = zod.object({
 
 
 /**
+ * @summary Update a tool's stored cookies from the authorized extension
+ */
+export const AdminUpdateToolCookiesBody = zod.object({
+  "toolId": zod.number(),
+  "cookieData": zod.string(),
+  "timestamp": zod.coerce.date().optional()
+})
+
+export const AdminUpdateToolCookiesResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
  * @summary Get the current user's subscription
  */
 export const GetMySubscriptionResponse = zod.object({

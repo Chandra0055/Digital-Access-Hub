@@ -4,6 +4,7 @@ import { db, usersTable, toolsTable, subscriptionsTable, userToolAccessTable } f
 import { eq, count, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../lib/auth";
 import { syncToolCookies } from "../services/cookieSyncer.js";
+import { logger } from "../lib/logger";
 import { z } from "zod";
 
 const router: IRouter = Router();
@@ -282,6 +283,49 @@ router.get("/admin/subscriptions", requireAdmin, async (_req, res): Promise<void
 // ─── POST /admin/tools/:id/force-sync ────────────────────────────────────────
 
 const ToolIdParam = z.object({ id: z.coerce.number().int().positive() });
+
+const UpdateCookiesBody = z.object({
+  toolId: z.coerce.number().int().positive(),
+  cookieData: z.string().min(1),
+  timestamp: z.coerce.date().optional(),
+});
+
+// ─── POST /admin/tools/update-cookies ────────────────────────────────────────
+// Used by the authorized Auto-Pusher extension to publish fresh tool cookies.
+router.post("/admin/tools/update-cookies", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = UpdateCookiesBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "toolId, cookieData, and a valid timestamp are required" });
+    return;
+  }
+
+  const { toolId, cookieData, timestamp } = parsed.data;
+
+  try {
+    const [tool] = await db
+      .select({ id: toolsTable.id })
+      .from(toolsTable)
+      .where(eq(toolsTable.id, toolId));
+
+    if (!tool) {
+      res.status(404).json({ error: "Tool not found" });
+      return;
+    }
+
+    await db
+      .update(toolsTable)
+      .set({
+        cookieData,
+        ...(timestamp ? { lastCookieSync: timestamp } : { lastCookieSync: new Date() }),
+      })
+      .where(eq(toolsTable.id, toolId));
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error({ err: error, toolId }, "Failed to update tool cookies");
+    res.status(500).json({ error: "Failed to update tool cookies" });
+  }
+});
 
 router.post("/admin/tools/:id/force-sync", requireAdmin, async (req, res): Promise<void> => {
   const params = ToolIdParam.safeParse(req.params);

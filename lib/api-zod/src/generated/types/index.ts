@@ -8,6 +8,7 @@
 
 export * from './adminCreateUser';
 export * from './adminCreateUserRole';
+export * from './adminUpdateToolCookies200';
 export * from './apiError';
 export * from './authResult';
 export * from './dashboardStats';
@@ -35,6 +36,7 @@ export * from './toolInputStatus';
 export * from './toolStatus';
 export * from './toolUpdate';
 export * from './toolUpdateStatus';
+export * from './updateToolCookiesInput';
 export * from './user';
 export * from './userAdminUpdate';
 export * from './userAdminUpdateRole';

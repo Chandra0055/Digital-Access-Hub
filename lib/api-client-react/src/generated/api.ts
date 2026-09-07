@@ -21,6 +21,7 @@ import type {
 
 import type {
   AdminCreateUser,
+  AdminUpdateToolCookies200,
   ApiError,
   AuthResult,
   DashboardStats,
@@ -36,6 +37,7 @@ import type {
   Tool,
   ToolInput,
   ToolUpdate,
+  UpdateToolCookiesInput,
   User,
   UserAdminUpdate,
   UserToolAccess,
@@ -880,6 +882,77 @@ export const useAdminForceSyncTool = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getAdminForceSyncToolMutationOptions(options));
+    }
+
+export const getAdminUpdateToolCookiesUrl = () => {
+
+
+
+
+  return `/api/admin/tools/update-cookies`
+}
+
+/**
+ * @summary Update a tool's stored cookies from the authorized extension
+ */
+export const adminUpdateToolCookies = async (updateToolCookiesInput: UpdateToolCookiesInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminUpdateToolCookies200> => {
+
+  return customFetch<AdminUpdateToolCookies200>(getAdminUpdateToolCookiesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateToolCookiesInput)
+  }
+);}
+
+
+
+
+
+export const getAdminUpdateToolCookiesMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateToolCookies>>, TError,{data: BodyType<UpdateToolCookiesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUpdateToolCookies>>, TError,{data: BodyType<UpdateToolCookiesInput>}, TContext> => {
+
+const mutationKey = ['adminUpdateToolCookies'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUpdateToolCookies>>, {data: BodyType<UpdateToolCookiesInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminUpdateToolCookies(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUpdateToolCookiesMutationResult = NonNullable<Awaited<ReturnType<typeof adminUpdateToolCookies>>>
+    export type AdminUpdateToolCookiesMutationBody = BodyType<UpdateToolCookiesInput>
+    export type AdminUpdateToolCookiesMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update a tool's stored cookies from the authorized extension
+ */
+export const useAdminUpdateToolCookies = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUpdateToolCookies>>, TError,{data: BodyType<UpdateToolCookiesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof adminUpdateToolCookies>>,
+        TError,
+        {data: BodyType<UpdateToolCookiesInput>},
+        TContext
+      > => {
+      return useMutation(getAdminUpdateToolCookiesMutationOptions(options));
     }
 
 export const getGetMySubscriptionUrl = () => {

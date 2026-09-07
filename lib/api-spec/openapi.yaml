@@ -264,6 +264,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/tools/update-cookies:
+    post:
+      operationId: adminUpdateToolCookies
+      tags: [admin]
+      summary: Update a tool's stored cookies from the authorized extension
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateToolCookiesInput"
+      responses:
+        "200":
+          description: Cookies updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ─── Subscriptions ────────────────────────────────────────────────────────
   /subscriptions/me:
     get:
@@ -748,6 +783,18 @@ components:
           type: string
         cookieCount:
           type: number
+
+    UpdateToolCookiesInput:
+      type: object
+      required: [toolId, cookieData]
+      properties:
+        toolId:
+          type: number
+        cookieData:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
 
     # ─── Subscription schemas ─────────────────────────────────────────────────
     Subscription:
