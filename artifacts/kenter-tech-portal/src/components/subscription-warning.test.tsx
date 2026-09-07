@@ -35,6 +35,11 @@ const states = [
     subscription: getSubscriptionState('expired', new Date(2026, 8, 4, 12), now),
     text: /subscription expired/i,
   },
+  {
+    name: 'inactive',
+    subscription: getSubscriptionState('inactive', null, now),
+    text: /you don't have an active subscription.*contact your administrator/i,
+  },
 ] as const;
 
 describe.each(['card', 'banner'] as const)('%s subscription warning', (variant) => {
