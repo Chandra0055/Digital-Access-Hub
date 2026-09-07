@@ -3,7 +3,8 @@ import { useListTools, useAdminGetStats, getListToolsQueryKey, getAdminGetStatsQ
 import { Package, Users, UserCheck, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isPast, format, formatDistanceToNow, differenceInDays } from 'date-fns';
+import { isPast, format, formatDistanceToNow } from 'date-fns';
+import { getSubscriptionExpiryWarning } from '@/lib/subscription-expiry';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -31,17 +32,8 @@ export default function DashboardPage() {
   const subscriptionActive = !isAdmin && user?.subscriptionStatus === 'active' && (!validUntil || !isPast(validUntil));
 
   // Expiring soon: active subscription with validUntil within 7 days
-  const daysUntilExpiry = validUntil && !isPast(validUntil)
-    ? differenceInDays(validUntil, new Date())
-    : null;
-  const subscriptionExpiringSoon = subscriptionActive && daysUntilExpiry !== null && daysUntilExpiry <= 7;
-
-  const expiryCountdownText =
-    daysUntilExpiry === 0
-      ? 'expires today'
-      : daysUntilExpiry === 1
-      ? 'expires tomorrow'
-      : `expires in ${daysUntilExpiry} days`;
+  const expiryWarning = getSubscriptionExpiryWarning(validUntil);
+  const subscriptionExpiringSoon = subscriptionActive && expiryWarning !== null;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -76,7 +68,7 @@ export default function DashboardPage() {
                   <p className="font-semibold text-yellow-900">⚠ Subscription Expiring Soon</p>
                   <p className="text-sm text-yellow-800 mt-0.5">
                     Your subscription{' '}
-                    <span className="font-medium">{expiryCountdownText}</span>
+                    <span className="font-medium">{expiryWarning?.countdownText}</span>
                     {' '}({format(validUntil, 'MMMM d, yyyy')}). Contact your administrator to renew before your access is cut off.
                   </p>
                 </div>

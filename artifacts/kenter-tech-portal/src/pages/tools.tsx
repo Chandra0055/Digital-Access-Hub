@@ -11,7 +11,8 @@ import { ExternalLink, Search, Zap, PuzzleIcon, AlertTriangle, Clock, Lock } fro
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { isPast, format, differenceInDays } from 'date-fns';
+import { isPast, format } from 'date-fns';
+import { getSubscriptionExpiryWarning } from '@/lib/subscription-expiry';
 
 // ─── Tool card ────────────────────────────────────────────────────────────────
 
@@ -153,17 +154,9 @@ export default function ToolsPage() {
 
   // Expiring soon
   const validUntilDate = user?.validUntil ? new Date(user.validUntil) : null;
-  const daysUntilExpiry = validUntilDate && !isPast(validUntilDate)
-    ? differenceInDays(validUntilDate, new Date())
-    : null;
+  const expiryWarning = getSubscriptionExpiryWarning(validUntilDate);
   const subscriptionExpiringSoon =
-    !isAdmin && subscriptionActive && daysUntilExpiry !== null && daysUntilExpiry <= 7;
-  const expiryCountdownText =
-    daysUntilExpiry === 0
-      ? 'expires today'
-      : daysUntilExpiry === 1
-      ? 'expires tomorrow'
-      : `expires in ${daysUntilExpiry} days`;
+    !isAdmin && subscriptionActive && expiryWarning !== null;
 
   // Extension detection
   useEffect(() => {
@@ -281,7 +274,7 @@ export default function ToolsPage() {
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-yellow-600" />
             <div>
               <p className="font-medium text-sm">
-                ⚠ Your subscription {expiryCountdownText} — {format(validUntilDate, 'MMMM d, yyyy')}
+                ⚠ Your subscription {expiryWarning?.countdownText} — {format(validUntilDate, 'MMMM d, yyyy')}
               </p>
               <p className="text-xs mt-0.5 text-yellow-800">
                 Contact your administrator to renew before your access is cut off.
