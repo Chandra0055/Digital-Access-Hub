@@ -1,10 +1,11 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useListTools, useAdminGetStats, getListToolsQueryKey, getAdminGetStatsQueryKey } from '@workspace/api-client-react';
-import { Package, Users, UserCheck, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Package, Users, UserCheck, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { getSubscriptionState } from '@/lib/subscription-expiry';
+import { SubscriptionWarning } from '@/components/subscription-warning';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -27,7 +28,7 @@ export default function DashboardPage() {
     user?.subscriptionStatus,
     user?.validUntil,
   );
-  const { validUntil, expiryWarning } = subscription;
+  const { validUntil } = subscription;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -53,78 +54,7 @@ export default function DashboardPage() {
             transition={{ duration: 0.3, delay: 0.1 }}
             className="mb-8"
           >
-            {subscription.isExpiryInvalid ? (
-              <div className="flex items-start gap-4 border border-amber-200 bg-amber-50 rounded-lg p-4">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-amber-800">Subscription Date Unavailable</p>
-                  <p className="text-sm text-amber-700 mt-0.5">
-                    We couldn't verify your subscription expiry date. Contact your administrator to restore access.
-                  </p>
-                </div>
-              </div>
-            ) : subscription.isExpiringSoon && validUntil ? (
-              <div className="flex items-start gap-4 border border-yellow-300 bg-yellow-50 rounded-lg p-4">
-                <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-yellow-900">⚠ Subscription Expiring Soon</p>
-                  <p className="text-sm text-yellow-800 mt-0.5">
-                    Your subscription{' '}
-                    <span className="font-medium">{expiryWarning?.countdownText}</span>
-                    {' '}({format(validUntil, 'MMMM d, yyyy')}). Contact your administrator to renew before your access is cut off.
-                  </p>
-                </div>
-              </div>
-            ) : subscription.isActive ? (
-              <div className="flex items-start gap-4 border border-green-200 bg-green-50 rounded-lg p-4">
-                <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-800">Subscription Active</p>
-                  {validUntil ? (
-                    <p className="text-sm text-green-700 mt-0.5">
-                      Your subscription expires on{' '}
-                      <span className="font-medium">{format(validUntil, 'MMMM d, yyyy')}</span>
-                      {' '}— {formatDistanceToNow(validUntil, { addSuffix: true })}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-green-700 mt-0.5">Your subscription has no expiry date.</p>
-                  )}
-                </div>
-              </div>
-            ) : subscription.isExpired ? (
-              <div className="flex items-start gap-4 border border-red-200 bg-red-50 rounded-lg p-4">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-red-800">Subscription Expired</p>
-                  <p className="text-sm text-red-700 mt-0.5">
-                    {validUntil
-                      ? `Your subscription expired on ${format(validUntil, 'MMMM d, yyyy')}.`
-                      : 'Your subscription is no longer active.'}
-                    {' '}Contact your administrator to renew.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-start gap-4 border border-amber-200 bg-amber-50 rounded-lg p-4">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-amber-800">No Active Subscription</p>
-                  <p className="text-sm text-amber-700 mt-0.5">
-                    You don't have an active subscription. Contact your administrator to get access.
-                  </p>
-                </div>
-              </div>
-            )}
+            <SubscriptionWarning subscription={subscription} variant="card" />
           </motion.div>
         )}
 

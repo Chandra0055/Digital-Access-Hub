@@ -2,3 +2,4 @@
 - [Validity / expiry pattern](user-validity.md) — validUntil column on users; accessDays param → server computes timestamp; null = unlimited.
 - [Zod in api-server](zod-api-server.md) — zod must be in api-server/package.json (catalog:) because esbuild bundles it; openapi format:email breaks orval→zod codegen with zod v3.
 - [HMR auth context error](hmr-auth-context.md) — useAuth "not in AuthProvider" errors in logs are HMR Fast Refresh artifacts, not real runtime failures; clears on full reload.
+- [Subscription warning presentation](subscription-warning-presentation.md) — centralize subscriber status messaging while keeping page-specific layout density explicit.

@@ -7,12 +7,12 @@ import { LaunchModal } from '@/components/launch-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExternalLink, Search, Zap, PuzzleIcon, AlertTriangle, Clock, Lock } from 'lucide-react';
+import { ExternalLink, Search, Zap, PuzzleIcon, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 import { getSubscriptionState } from '@/lib/subscription-expiry';
+import { SubscriptionWarning } from '@/components/subscription-warning';
 
 // ─── Tool card ────────────────────────────────────────────────────────────────
 
@@ -146,8 +146,6 @@ export default function ToolsPage() {
     user?.validUntil,
   );
   const subscriptionActive = isAdmin || subscription.isActive;
-  const validUntilDate = subscription.validUntil;
-  const expiryWarning = subscription.expiryWarning;
 
   // Extension detection
   useEffect(() => {
@@ -243,47 +241,12 @@ export default function ToolsPage() {
           )}
         </div>
 
-        {/* Subscription banners */}
-        {!isAdmin && (subscription.isExpired || subscription.isInactive) && (
-          <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium text-sm">
-                {subscription.isExpiryInvalid
-                  ? "We couldn't verify your subscription expiry date."
-                  : subscription.isExpired
-                  ? `Your subscription expired on ${user?.validUntil ? format(new Date(user.validUntil), 'MMMM d, yyyy') : 'an unknown date'}.`
-                  : "You don't have an active subscription."}
-              </p>
-              <p className="text-xs mt-0.5 text-red-700">
-                Contact your administrator to renew your subscription and regain access.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!isAdmin && subscription.isExpiringSoon && validUntilDate && (
-          <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-yellow-900">
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-yellow-600" />
-            <div>
-              <p className="font-medium text-sm">
-                ⚠ Your subscription {expiryWarning?.countdownText} — {format(validUntilDate, 'MMMM d, yyyy')}
-              </p>
-              <p className="text-xs mt-0.5 text-yellow-800">
-                Contact your administrator to renew before your access is cut off.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {subscription.isActive && !isAdmin && validUntilDate && !subscription.isExpiringSoon && (
-          <div className="mb-6 flex items-center gap-2 text-xs text-muted-foreground border border-border rounded-lg px-3 py-2 w-fit">
-            <Clock className="w-3.5 h-3.5" />
-            Subscription expires on{' '}
-            <span className="font-medium text-foreground ml-1">
-              {format(validUntilDate, 'MMMM d, yyyy')}
-            </span>
-          </div>
+        {!isAdmin && (
+          <SubscriptionWarning
+            subscription={subscription}
+            variant="banner"
+            className="mb-6"
+          />
         )}
 
         {/* Filters */}
