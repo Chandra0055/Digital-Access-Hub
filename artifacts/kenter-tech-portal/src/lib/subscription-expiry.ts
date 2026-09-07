@@ -1,9 +1,48 @@
 import { differenceInCalendarDays, isAfter } from 'date-fns';
 
+export type SubscriptionStatus = 'active' | 'inactive' | 'expired';
+
 export type SubscriptionExpiryWarning = {
   daysRemaining: number;
   countdownText: string;
 };
+
+export type SubscriptionState = {
+  status: SubscriptionStatus;
+  isActive: boolean;
+  isInactive: boolean;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  validUntil: Date | null;
+  expiryWarning: SubscriptionExpiryWarning | null;
+};
+
+export function getSubscriptionState(
+  subscriptionStatus: string | null | undefined,
+  validUntil: Date | string | null | undefined,
+  now: Date = new Date(),
+): SubscriptionState {
+  const expiryDate = validUntil ? new Date(validUntil) : null;
+  const hasExpired = expiryDate !== null && expiryDate.getTime() <= now.getTime();
+  const status: SubscriptionStatus =
+    subscriptionStatus === 'active'
+      ? hasExpired ? 'expired' : 'active'
+      : subscriptionStatus === 'expired'
+        ? 'expired'
+        : 'inactive';
+  const expiryWarning =
+    status === 'active' ? getSubscriptionExpiryWarning(expiryDate, now) : null;
+
+  return {
+    status,
+    isActive: status === 'active',
+    isInactive: status === 'inactive',
+    isExpired: status === 'expired',
+    isExpiringSoon: expiryWarning !== null,
+    validUntil: expiryDate,
+    expiryWarning,
+  };
+}
 
 export function getSubscriptionExpiryWarning(
   validUntil: Date | null,

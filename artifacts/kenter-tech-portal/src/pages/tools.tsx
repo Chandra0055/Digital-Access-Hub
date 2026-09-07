@@ -11,8 +11,8 @@ import { ExternalLink, Search, Zap, PuzzleIcon, AlertTriangle, Clock, Lock } fro
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { isPast, format } from 'date-fns';
-import { getSubscriptionExpiryWarning } from '@/lib/subscription-expiry';
+import { format } from 'date-fns';
+import { getSubscriptionState } from '@/lib/subscription-expiry';
 
 // ─── Tool card ────────────────────────────────────────────────────────────────
 
@@ -140,23 +140,14 @@ export default function ToolsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Subscription state
   const isAdmin = user?.role === 'admin';
-  const subscriptionActive =
-    isAdmin ||
-    (user?.subscriptionStatus === 'active' &&
-      (!user?.validUntil || !isPast(new Date(user.validUntil))));
-  const subscriptionExpired =
-    !isAdmin &&
-    (user?.subscriptionStatus === 'expired' ||
-      (user?.validUntil ? isPast(new Date(user.validUntil)) : false));
-  const subscriptionNone = !isAdmin && user?.subscriptionStatus === 'inactive';
-
-  // Expiring soon
-  const validUntilDate = user?.validUntil ? new Date(user.validUntil) : null;
-  const expiryWarning = getSubscriptionExpiryWarning(validUntilDate);
-  const subscriptionExpiringSoon =
-    !isAdmin && subscriptionActive && expiryWarning !== null;
+  const subscription = getSubscriptionState(
+    user?.subscriptionStatus,
+    user?.validUntil,
+  );
+  const subscriptionActive = isAdmin || subscription.isActive;
+  const validUntilDate = subscription.validUntil;
+  const expiryWarning = subscription.expiryWarning;
 
   // Extension detection
   useEffect(() => {
@@ -253,12 +244,12 @@ export default function ToolsPage() {
         </div>
 
         {/* Subscription banners */}
-        {(subscriptionExpired || subscriptionNone) && (
+        {!isAdmin && (subscription.isExpired || subscription.isInactive) && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-800">
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-sm">
-                {subscriptionExpired
+                {subscription.isExpired
                   ? `Your subscription expired on ${user?.validUntil ? format(new Date(user.validUntil), 'MMMM d, yyyy') : 'an unknown date'}.`
                   : "You don't have an active subscription."}
               </p>
@@ -269,7 +260,7 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {subscriptionExpiringSoon && validUntilDate && (
+        {!isAdmin && subscription.isExpiringSoon && validUntilDate && (
           <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-yellow-900">
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-yellow-600" />
             <div>
@@ -283,12 +274,12 @@ export default function ToolsPage() {
           </div>
         )}
 
-        {subscriptionActive && !isAdmin && user?.validUntil && !subscriptionExpiringSoon && (
+        {subscription.isActive && !isAdmin && validUntilDate && !subscription.isExpiringSoon && (
           <div className="mb-6 flex items-center gap-2 text-xs text-muted-foreground border border-border rounded-lg px-3 py-2 w-fit">
             <Clock className="w-3.5 h-3.5" />
             Subscription expires on{' '}
             <span className="font-medium text-foreground ml-1">
-              {format(new Date(user.validUntil), 'MMMM d, yyyy')}
+              {format(validUntilDate, 'MMMM d, yyyy')}
             </span>
           </div>
         )}

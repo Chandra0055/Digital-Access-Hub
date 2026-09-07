@@ -3,8 +3,8 @@ import { useListTools, useAdminGetStats, getListToolsQueryKey, getAdminGetStatsQ
 import { Package, Users, UserCheck, TrendingUp, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isPast, format, formatDistanceToNow } from 'date-fns';
-import { getSubscriptionExpiryWarning } from '@/lib/subscription-expiry';
+import { format, formatDistanceToNow } from 'date-fns';
+import { getSubscriptionState } from '@/lib/subscription-expiry';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -23,17 +23,11 @@ export default function DashboardPage() {
 
   const activeTools = tools?.filter((t) => t.status === 'active') || [];
 
-  // Subscription state for non-admin users
-  const validUntil = user?.validUntil ? new Date(user.validUntil) : null;
-  const subscriptionExpired = !isAdmin && (
-    user?.subscriptionStatus !== 'active' ||
-    (validUntil ? isPast(validUntil) : false)
+  const subscription = getSubscriptionState(
+    user?.subscriptionStatus,
+    user?.validUntil,
   );
-  const subscriptionActive = !isAdmin && user?.subscriptionStatus === 'active' && (!validUntil || !isPast(validUntil));
-
-  // Expiring soon: active subscription with validUntil within 7 days
-  const expiryWarning = getSubscriptionExpiryWarning(validUntil);
-  const subscriptionExpiringSoon = subscriptionActive && expiryWarning !== null;
+  const { validUntil, expiryWarning } = subscription;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -59,7 +53,7 @@ export default function DashboardPage() {
             transition={{ duration: 0.3, delay: 0.1 }}
             className="mb-8"
           >
-            {subscriptionExpiringSoon && validUntil ? (
+            {subscription.isExpiringSoon && validUntil ? (
               <div className="flex items-start gap-4 border border-yellow-300 bg-yellow-50 rounded-lg p-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="w-5 h-5 text-yellow-600" />
@@ -73,7 +67,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </div>
-            ) : subscriptionActive ? (
+            ) : subscription.isActive ? (
               <div className="flex items-start gap-4 border border-green-200 bg-green-50 rounded-lg p-4">
                 <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
                   <CheckCircle className="w-5 h-5 text-green-600" />
@@ -91,7 +85,7 @@ export default function DashboardPage() {
                   )}
                 </div>
               </div>
-            ) : subscriptionExpired ? (
+            ) : subscription.isExpired ? (
               <div className="flex items-start gap-4 border border-red-200 bg-red-50 rounded-lg p-4">
                 <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -186,7 +180,7 @@ export default function DashboardPage() {
                     <span className="text-sm text-muted-foreground">Subscription Expires</span>
                     <span className="text-sm font-mono">
                       {validUntil
-                        ? isPast(validUntil)
+                        ? subscription.isExpired
                           ? <span className="text-red-500 font-semibold">Expired {format(validUntil, 'MMM dd, yyyy')}</span>
                           : <span className="text-green-600 font-semibold">{format(validUntil, 'MMM dd, yyyy')}</span>
                         : <span className="text-green-600">Unlimited</span>}
