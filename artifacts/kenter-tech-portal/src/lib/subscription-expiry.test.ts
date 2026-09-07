@@ -89,18 +89,39 @@ test('returns "expires tomorrow" for an expiry one calendar day away', () => {
   );
 });
 
-test('returns a seven-day countdown at the warning boundary', () => {
-  assert.deepEqual(
-    getSubscriptionExpiryWarning(new Date(2026, 8, 12, 12), now),
-    { daysRemaining: 7, countdownText: 'expires in 7 days' },
-  );
-});
+test('uses calendar days at the seven-day warning boundary across times of day', async (t) => {
+  const boundaryCases = [
+    {
+      name: 'just inside: late on the seventh calendar day',
+      currentTime: new Date(2026, 8, 5, 0, 0, 0, 1),
+      validUntil: new Date(2026, 8, 12, 23, 59, 59, 999),
+      expected: { daysRemaining: 7, countdownText: 'expires in 7 days' },
+    },
+    {
+      name: 'exactly seven elapsed days',
+      currentTime: new Date(2026, 8, 5, 12),
+      validUntil: new Date(2026, 8, 12, 12),
+      expected: { daysRemaining: 7, countdownText: 'expires in 7 days' },
+    },
+    {
+      name: 'just outside: early on the eighth calendar day',
+      currentTime: new Date(2026, 8, 5, 23, 59, 59, 999),
+      validUntil: new Date(2026, 8, 13, 0, 0, 0, 0),
+      expected: null,
+    },
+  ] as const;
 
-test('does not return a warning when expiry is more than seven calendar days away', () => {
-  assert.equal(
-    getSubscriptionExpiryWarning(new Date(2026, 8, 13), now),
-    null,
-  );
+  for (const boundaryCase of boundaryCases) {
+    await t.test(boundaryCase.name, () => {
+      assert.deepEqual(
+        getSubscriptionExpiryWarning(
+          boundaryCase.validUntil,
+          boundaryCase.currentTime,
+        ),
+        boundaryCase.expected,
+      );
+    });
+  }
 });
 
 test('does not return a warning when expiry is already past by a fraction of a day', () => {
