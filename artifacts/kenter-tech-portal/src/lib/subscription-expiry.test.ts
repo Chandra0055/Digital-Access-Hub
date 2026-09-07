@@ -124,6 +124,53 @@ test('uses calendar days at the seven-day warning boundary across times of day',
   }
 });
 
+test('uses calendar days at the seven-day warning boundary across daylight-saving transitions', async (t) => {
+  const originalTimezone = process.env.TZ;
+  process.env.TZ = 'America/New_York';
+
+  try {
+    const transitionCases = [
+      {
+        name: 'spring forward',
+        currentTime: new Date(2026, 2, 1, 12),
+        seventhCalendarDay: new Date(2026, 2, 8, 12),
+        eighthCalendarDay: new Date(2026, 2, 9, 12),
+      },
+      {
+        name: 'fall back',
+        currentTime: new Date(2026, 9, 25, 12),
+        seventhCalendarDay: new Date(2026, 10, 1, 12),
+        eighthCalendarDay: new Date(2026, 10, 2, 12),
+      },
+    ] as const;
+
+    for (const transitionCase of transitionCases) {
+      await t.test(transitionCase.name, () => {
+        assert.deepEqual(
+          getSubscriptionExpiryWarning(
+            transitionCase.seventhCalendarDay,
+            transitionCase.currentTime,
+          ),
+          { daysRemaining: 7, countdownText: 'expires in 7 days' },
+        );
+        assert.equal(
+          getSubscriptionExpiryWarning(
+            transitionCase.eighthCalendarDay,
+            transitionCase.currentTime,
+          ),
+          null,
+        );
+      });
+    }
+  } finally {
+    if (originalTimezone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTimezone;
+    }
+  }
+});
+
 test('does not return a warning when expiry is already past by a fraction of a day', () => {
   assert.equal(
     getSubscriptionExpiryWarning(new Date(2026, 8, 5, 11, 59, 59, 999), now),
