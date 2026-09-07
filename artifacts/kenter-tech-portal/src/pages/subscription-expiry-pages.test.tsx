@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { authState } = vi.hoisted(() => ({
   authState: {
@@ -58,6 +58,12 @@ beforeAll(() => {
   vi.setSystemTime(now);
 });
 
+beforeEach(() => {
+  authState.user.role = 'subscriber';
+  authState.user.subscriptionStatus = 'active';
+  authState.user.validUntil = null;
+});
+
 describe.each([
   ['Dashboard', DashboardPage],
   ['Tools', ToolsPage],
@@ -110,4 +116,38 @@ describe.each([
     expect(screen.queryByText(/expires in \d+ days/i)).not.toBeInTheDocument();
     expect(screen.getAllByText(/subscription expired/i)[0]).toBeVisible();
   });
+});
+
+describe.each([
+  ['Dashboard', DashboardPage],
+  ['Tools', ToolsPage],
+])('%s admin subscription display', (_name, Page) => {
+  it('does not show subscriber warnings for admins', () => {
+    authState.user.role = 'admin';
+    authState.user.subscriptionStatus = 'inactive';
+    authState.user.validUntil = expiringSoon;
+
+    render(<Page />);
+
+    expect(screen.queryByText(/subscription expiring soon/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/expires in \d+ days/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no active subscription/i)).not.toBeInTheDocument();
+  });
+});
+
+it('keeps an active subscription without an expiry visibly active without a countdown', () => {
+  render(<DashboardPage />);
+
+  expect(screen.getByText(/subscription active/i)).toBeVisible();
+  expect(screen.getByText(/no expiry date/i)).toBeVisible();
+  expect(screen.queryByText(/expires in \d+ days/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/subscription expiring soon/i)).not.toBeInTheDocument();
+});
+
+it('shows an active unlimited status on the account page without a countdown', () => {
+  render(<AccountPage />);
+
+  expect(screen.getByText(/^active$/i)).toBeVisible();
+  expect(screen.getByText(/^unlimited$/i)).toBeVisible();
+  expect(screen.queryByText(/expires in \d+ days/i)).not.toBeInTheDocument();
 });
