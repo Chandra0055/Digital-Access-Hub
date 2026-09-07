@@ -8,7 +8,7 @@ const { authState } = vi.hoisted(() => ({
       name: 'Subscriber',
       role: 'subscriber',
       subscriptionStatus: 'active',
-      validUntil: null as Date | null,
+      validUntil: null as Date | string | null,
     },
   },
 }));
@@ -46,6 +46,7 @@ vi.mock('framer-motion', async () => {
 
 import DashboardPage from './dashboard';
 import ToolsPage from './tools';
+import AccountPage from './account';
 
 const now = new Date(2026, 8, 5, 12);
 const expiringSoon = new Date(2026, 8, 12, 12);
@@ -55,6 +56,21 @@ const expired = new Date(2026, 8, 4, 12);
 beforeAll(() => {
   vi.useFakeTimers();
   vi.setSystemTime(now);
+});
+
+describe.each([
+  ['Dashboard', DashboardPage],
+  ['Tools', ToolsPage],
+  ['Account', AccountPage],
+])('%s malformed subscription expiry', (_name, Page) => {
+  it('renders a clear unavailable fallback without throwing', () => {
+    authState.user.subscriptionStatus = 'active';
+    authState.user.validUntil = 'not-a-timestamp';
+
+    render(<Page />);
+
+    expect(screen.getAllByText(/date unavailable|couldn't verify/i)[0]).toBeVisible();
+  });
 });
 
 afterAll(() => {

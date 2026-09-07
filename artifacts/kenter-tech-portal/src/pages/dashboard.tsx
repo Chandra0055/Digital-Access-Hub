@@ -53,7 +53,19 @@ export default function DashboardPage() {
             transition={{ duration: 0.3, delay: 0.1 }}
             className="mb-8"
           >
-            {subscription.isExpiringSoon && validUntil ? (
+            {subscription.isExpiryInvalid ? (
+              <div className="flex items-start gap-4 border border-amber-200 bg-amber-50 rounded-lg p-4">
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-amber-800">Subscription Date Unavailable</p>
+                  <p className="text-sm text-amber-700 mt-0.5">
+                    We couldn't verify your subscription expiry date. Contact your administrator to restore access.
+                  </p>
+                </div>
+              </div>
+            ) : subscription.isExpiringSoon && validUntil ? (
               <div className="flex items-start gap-4 border border-yellow-300 bg-yellow-50 rounded-lg p-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-400/20 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="w-5 h-5 text-yellow-600" />
@@ -179,7 +191,9 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Subscription Expires</span>
                     <span className="text-sm font-mono">
-                      {validUntil
+                      {subscription.isExpiryInvalid
+                        ? <span className="text-amber-600 font-semibold">Date unavailable</span>
+                        : validUntil
                         ? subscription.isExpired
                           ? <span className="text-red-500 font-semibold">Expired {format(validUntil, 'MMM dd, yyyy')}</span>
                           : <span className="text-green-600 font-semibold">{format(validUntil, 'MMM dd, yyyy')}</span>

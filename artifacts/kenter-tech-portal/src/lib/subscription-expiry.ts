@@ -12,6 +12,7 @@ export type SubscriptionState = {
   isActive: boolean;
   isInactive: boolean;
   isExpired: boolean;
+  isExpiryInvalid: boolean;
   isExpiringSoon: boolean;
   validUntil: Date | null;
   expiryWarning: SubscriptionExpiryWarning | null;
@@ -22,10 +23,18 @@ export function getSubscriptionState(
   validUntil: Date | string | null | undefined,
   now: Date = new Date(),
 ): SubscriptionState {
-  const expiryDate = validUntil ? new Date(validUntil) : null;
+  const parsedExpiryDate =
+    validUntil === null || validUntil === undefined
+      ? null
+      : new Date(validUntil);
+  const isExpiryInvalid =
+    parsedExpiryDate !== null && Number.isNaN(parsedExpiryDate.getTime());
+  const expiryDate = isExpiryInvalid ? null : parsedExpiryDate;
   const hasExpired = expiryDate !== null && expiryDate.getTime() <= now.getTime();
   const status: SubscriptionStatus =
-    subscriptionStatus === 'active'
+    isExpiryInvalid
+      ? 'inactive'
+      : subscriptionStatus === 'active'
       ? hasExpired ? 'expired' : 'active'
       : subscriptionStatus === 'expired'
         ? 'expired'
@@ -38,6 +47,7 @@ export function getSubscriptionState(
     isActive: status === 'active',
     isInactive: status === 'inactive',
     isExpired: status === 'expired',
+    isExpiryInvalid,
     isExpiringSoon: expiryWarning !== null,
     validUntil: expiryDate,
     expiryWarning,
@@ -48,7 +58,11 @@ export function getSubscriptionExpiryWarning(
   validUntil: Date | null,
   now: Date = new Date(),
 ): SubscriptionExpiryWarning | null {
-  if (!validUntil || !isAfter(validUntil, now)) {
+  if (
+    !validUntil ||
+    Number.isNaN(validUntil.getTime()) ||
+    !isAfter(validUntil, now)
+  ) {
     return null;
   }
 

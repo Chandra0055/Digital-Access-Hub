@@ -249,7 +249,9 @@ export default function ToolsPage() {
             <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-sm">
-                {subscription.isExpired
+                {subscription.isExpiryInvalid
+                  ? "We couldn't verify your subscription expiry date."
+                  : subscription.isExpired
                   ? `Your subscription expired on ${user?.validUntil ? format(new Date(user.validUntil), 'MMMM d, yyyy') : 'an unknown date'}.`
                   : "You don't have an active subscription."}
               </p>

@@ -1,14 +1,17 @@
 import { useAuth } from '@/contexts/auth-context';
 import { motion } from 'framer-motion';
 import { User, ShieldCheck, Clock } from 'lucide-react';
-import { format, isPast } from 'date-fns';
+import { format } from 'date-fns';
+import { getSubscriptionState } from '@/lib/subscription-expiry';
 
 export default function AccountPage() {
   const { user } = useAuth();
 
-  const validUntil = user?.validUntil ? new Date(user.validUntil) : null;
-  const isExpired = validUntil ? isPast(validUntil) : false;
-  const accessActive = !isExpired;
+  const subscription = getSubscriptionState(
+    user?.subscriptionStatus,
+    user?.validUntil,
+  );
+  const validUntil = subscription.validUntil;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -60,13 +63,13 @@ export default function AccountPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Status</span>
-                {accessActive ? (
+                {subscription.isActive ? (
                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-green-500/10 text-green-600 border border-green-500/20">
                     ACTIVE
                   </span>
                 ) : (
                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-red-500/10 text-red-600 border border-red-500/20">
-                    EXPIRED
+                    {subscription.isExpiryInvalid ? 'UNAVAILABLE' : subscription.isExpired ? 'EXPIRED' : 'INACTIVE'}
                   </span>
                 )}
               </div>
@@ -75,7 +78,11 @@ export default function AccountPage() {
                   <Clock className="w-3.5 h-3.5" /> Valid Until
                 </span>
                 <span className="text-sm font-mono">
-                  {validUntil ? format(validUntil, 'MMM dd, yyyy') : 'Unlimited'}
+                  {subscription.isExpiryInvalid
+                    ? 'Date unavailable'
+                    : validUntil
+                      ? format(validUntil, 'MMM dd, yyyy')
+                      : 'Unlimited'}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground pt-2 border-t border-border">

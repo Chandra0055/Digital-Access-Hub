@@ -15,6 +15,7 @@ test('active subscription without an expiry is unlimited and active', () => {
       isActive: true,
       isInactive: false,
       isExpired: false,
+      isExpiryInvalid: false,
       isExpiringSoon: false,
       validUntil: null,
       expiryWarning: null,
@@ -119,6 +120,43 @@ test('compares timezone-offset timestamps by their actual instants', () => {
       new Date('2026-09-05T08:00:00-04:00'),
       new Date('2026-09-05T12:00:00.001Z'),
     ),
+    null,
+  );
+});
+
+test('malformed expiry strings produce an explicit safe inactive state', () => {
+  const state = getSubscriptionState('active', 'not-a-timestamp', now);
+
+  assert.equal(state.status, 'inactive');
+  assert.equal(state.isActive, false);
+  assert.equal(state.isInactive, true);
+  assert.equal(state.isExpiryInvalid, true);
+  assert.equal(state.isExpiringSoon, false);
+  assert.equal(state.validUntil, null);
+  assert.equal(state.expiryWarning, null);
+});
+
+test('invalid Date objects produce an explicit safe inactive state', () => {
+  const state = getSubscriptionState('active', new Date(Number.NaN), now);
+
+  assert.equal(state.status, 'inactive');
+  assert.equal(state.isActive, false);
+  assert.equal(state.isExpiryInvalid, true);
+  assert.equal(state.validUntil, null);
+});
+
+test('empty expiry strings produce an explicit safe inactive state', () => {
+  const state = getSubscriptionState('active', '', now);
+
+  assert.equal(state.status, 'inactive');
+  assert.equal(state.isActive, false);
+  assert.equal(state.isExpiryInvalid, true);
+  assert.equal(state.validUntil, null);
+});
+
+test('does not return a warning for an invalid Date object', () => {
+  assert.equal(
+    getSubscriptionExpiryWarning(new Date(Number.NaN), now),
     null,
   );
 });
