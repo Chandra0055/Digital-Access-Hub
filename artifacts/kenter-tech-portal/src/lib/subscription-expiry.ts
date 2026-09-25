@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'expired';
 
@@ -17,6 +17,23 @@ export type SubscriptionState = {
   validUntil: Date | null;
   expiryWarning: SubscriptionExpiryWarning | null;
 };
+
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function differenceInUtcCalendarDays(laterDate: Date, earlierDate: Date): number {
+  const laterUtcDay = Date.UTC(
+    laterDate.getUTCFullYear(),
+    laterDate.getUTCMonth(),
+    laterDate.getUTCDate(),
+  );
+  const earlierUtcDay = Date.UTC(
+    earlierDate.getUTCFullYear(),
+    earlierDate.getUTCMonth(),
+    earlierDate.getUTCDate(),
+  );
+
+  return Math.round((laterUtcDay - earlierUtcDay) / MILLISECONDS_PER_DAY);
+}
 
 export function getSubscriptionState(
   subscriptionStatus: string | null | undefined,
@@ -66,7 +83,8 @@ export function getSubscriptionExpiryWarning(
     return null;
   }
 
-  const daysRemaining = differenceInCalendarDays(validUntil, now);
+  // Countdown labels follow UTC calendar dates so travel cannot shift them.
+  const daysRemaining = differenceInUtcCalendarDays(validUntil, now);
   if (daysRemaining > 7) {
     return null;
   }

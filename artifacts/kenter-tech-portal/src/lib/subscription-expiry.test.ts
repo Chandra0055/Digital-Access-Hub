@@ -192,6 +192,40 @@ test('compares timezone-offset timestamps by their actual instants', () => {
   );
 });
 
+test('uses UTC calendar days consistently when viewed from different time zones near midnight', async (t) => {
+  const originalTimezone = process.env.TZ;
+  const currentTime = '2026-09-05T23:30:00.000Z';
+  const validUntil = '2026-09-06T00:30:00.000Z';
+  const timezones = [
+    'Pacific/Honolulu',
+    'America/New_York',
+    'Europe/London',
+    'Pacific/Auckland',
+  ] as const;
+
+  try {
+    for (const timezone of timezones) {
+      await t.test(timezone, () => {
+        process.env.TZ = timezone;
+
+        assert.deepEqual(
+          getSubscriptionExpiryWarning(
+            new Date(validUntil),
+            new Date(currentTime),
+          ),
+          { daysRemaining: 1, countdownText: 'expires tomorrow' },
+        );
+      });
+    }
+  } finally {
+    if (originalTimezone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTimezone;
+    }
+  }
+});
+
 test('malformed expiry strings produce an explicit safe inactive state', () => {
   const state = getSubscriptionState('active', 'not-a-timestamp', now);
 
